@@ -45,6 +45,339 @@
             z-index: 1000;
         }
         
+        
+        h1 {
+            font-size: 22px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4, #fad0c4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        #map-container {
+            flex: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .stats-panel {
+            position: absolute;
+            top: 90px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            min-width: 150px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #ffdd00;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .btn {
+            padding: 14px 18px;
+            border: none;
+            border-radius: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .pulse {
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ffdd00;
+            cursor: pointer;
+            box-shadow: 0 0 0 rgba(255, 221, 0, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 221, 0, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 221, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 221, 0, 0);
+            }
+        }
+        
+        .geospot-marker {
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .geospot-prize {
+            background: linear-gradient(45deg, #f5af19, #f12711);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .geospot-empty {
+            background: linear-gradient(45deg, #4285F4, #34A853);
+        }
+        
+        .geospot-found {
+            background: linear-gradient(45deg, #34A853, #0F9D58);
+        }
+        
+        .user-marker {
+            background: linear-gradient(45deg, #4285F4, #1a73e8);
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(66, 133, 244, 0.5);
+        }
+        
+        .compass {
+            position: absolute;
+            bottom: 80px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .compass i {
+            font-size: 24px;
+            color: white;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
+            text-align: center;
+            max-width: 80%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .notification.prize {
+            background: linear-gradient(45deg, rgba(245, 175, 25, 0.9), rgba(241, 39, 17, 0.9));
+        }
+        
+        @keyframes slideIn {
+            from { top: -100px; opacity: 0; }
+            to { top: 20px; opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+        
+        .radar-sweep {
+            position: absolute;
+            bottom: 140px;
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .radar-sweep::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 40%, rgba(255, 221, 0, 0.3), transparent 60%);
+            animation: radarSpin 3s linear infinite;
+        }
+        
+        @keyframes radarSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .radar-sweep i {
+            font-size: 20px;
+            color: white;
+            z-index: 2;
+        }
+        
+        .game-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .mode-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .mode-economy { background: #34A853; }
+        .mode-standard { background: #4285F4; }
+        .mode-premium { background: #EA4335; }
+        
+        /* Адаптивность для разных устройств */
+        @media (max-width: 400px) {
+            .header {
+                padding: 12px;
+            }
+            
+            h1 {
+                font-size: 18px;
+            }
+            
+            .btn {
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+            
+            .stats-panel {
+                top: 80px;
+                padding: 10px 12px;
+            }
+        }
+        
+        /* Эффект частиц на заднем фоне */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.2;
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+                opacity: 0.5;
+            }
+        }
+        
         /* Остальные стили остаются без изменений */
         
         .error-overlay {
@@ -100,16 +433,48 @@
         .hidden {
             display: none;
         }
+        
+        .custom-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 10000;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 80%;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .custom-alert-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: linear-gradient(45deg, #4285F4, #34A853);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="error-overlay hidden" id="error-overlay">
         <div class="error-content">
             <h2>❌ Ошибка геолокации</h2>
-            <p>Для работы приложения необходим доступ к вашему местоположению. Пожалуйста, разрешите доступ к геолокации в настройках вашего браузера или устройства.</p>
+            <p id="error-message">Для работы приложения необходим доступ к вашему местоположению. Пожалуйста, разрешите доступ к геолокации в настройках вашего браузера или устройства.</p>
             <button class="error-btn" onclick="hideError()">Понятно</button>
             <button class="error-btn" onclick="getLocation()" style="margin-left: 10px;">Повторить</button>
         </div>
+    </div>
+
+    <div class="custom-alert hidden" id="custom-alert">
+        <div id="alert-message"></div>
+        <button class="custom-alert-btn" onclick="hideAlert()">OK</button>
     </div>
 
     <div class="particles" id="particles"></div>
@@ -167,9 +532,6 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         
-        // Убираем неподдерживаемый метод
-        // tg.enableClosingConfirmation(); // Не поддерживается в версии 6.0
-        
         // Переменные для хранения состояния
         let map, userMarker, gameMode = 'standard';
         let geospots = [];
@@ -177,10 +539,39 @@
         let userLocation = null;
         let markers = [];
         
+        // Безопасная функция для показа уведомлений
+        function showAlert(message) {
+            // Проверяем, доступен ли метод showAlert
+            if (typeof tg.showAlert === 'function') {
+                try {
+                    tg.showAlert(message);
+                } catch (e) {
+                    // Если метод не работает, используем кастомное уведомление
+                    showCustomAlert(message);
+                }
+            } else {
+                // Если метод недоступен, используем кастомное уведомление
+                showCustomAlert(message);
+            }
+        }
+        
+        // Кастомное уведомление
+        function showCustomAlert(message) {
+            const alertElement = document.getElementById('custom-alert');
+            const messageElement = document.getElementById('alert-message');
+            
+            messageElement.innerHTML = message;
+            alertElement.classList.remove('hidden');
+        }
+        
+        function hideAlert() {
+            document.getElementById('custom-alert').classList.add('hidden');
+        }
+        
         // Функции для работы с ошибками
         function showError(message) {
             const errorOverlay = document.getElementById('error-overlay');
-            const errorText = errorOverlay.querySelector('p');
+            const errorText = document.getElementById('error-message');
             errorText.textContent = message;
             errorOverlay.classList.remove('hidden');
         }
@@ -304,7 +695,7 @@
                                 errorMessage += "Информация о местоположении недоступна.";
                                 break;
                             case error.TIMEOUT:
-                                errorMessage += "Время запроса на получение местоположения истекло.";
+                                errorMessage += "Время запроса на получение местоположения истекло. Попробуйте снова.";
                                 break;
                             default:
                                 errorMessage += "Произошла неизвестная ошибка.";
@@ -312,7 +703,8 @@
                         
                         showError(errorMessage);
                     },
-                    {enableHighAccuracy: true, timeout: 10000, maximumAge: 30000}
+                    // Увеличиваем таймаут до 30 секунд
+                    {enableHighAccuracy: true, timeout: 30000, maximumAge: 30000}
                 );
                 
                 // Следим за изменением положения
@@ -348,8 +740,7 @@
         
         // Показ выбора режима игры
         function showModeSelection() {
-            // Заменяем showPopup на showAlert, так как showPopup не поддерживается
-            tg.showAlert("Выберите режим игры:\n\n🟢 Эконом (5 руб.)\n🔵 Стандарт (10 руб.)\n🟣 Премиум (15 руб.)");
+            showAlert("Выберите режим игры:\n\n🟢 Эконом (5 руб.)\n🔵 Стандарт (10 руб.)\n🟣 Премиум (15 руб.)");
         }
         
         // Обновление статуса игры
@@ -386,7 +777,7 @@
         // Начало игры
         function startGame() {
             if (!userLocation) {
-                tg.showAlert("Сначала разрешите доступ к геолокации");
+                showAlert("Сначала разрешите доступ к геолокации");
                 getLocation();
                 return;
             }
@@ -400,7 +791,7 @@
             }));
             
             // Показ уведомления о начале игры
-            showNotification("Игра началась! Ищите геометки вокруг себя", "success");
+            showAlert("Игра началась! Ищите геометки вокруг себя");
         }
         
         // Проверка близости к геометкам
@@ -437,12 +828,6 @@
             });
         }
         
-        // Показ уведомления
-        function showNotification(message, type = "info") {
-            // Вместо кастомных уведомлений используем showAlert
-            tg.showAlert(message);
-        }
-        
         // Расчет расстояния между двумя точками (в метрах)
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371000; // Радиус Земли в метрах
@@ -459,7 +844,7 @@
         // Обработка клика по геометке
         function handleGeospotClick(spotId) {
             if (!userLocation) {
-                tg.showAlert("Сначала получите ваше местоположение");
+                showAlert("Сначала получите ваше местоположение");
                 return;
             }
             
@@ -489,17 +874,17 @@
                 
                 // Показываем уведомление
                 if (spot.has_prize) {
-                    showNotification(`🎉 Вы нашли приз ${spot.prize_amount} руб.!`, "prize");
+                    showAlert(`🎉 Вы нашли приз ${spot.prize_amount} руб.!`);
                     
                     // Воспроизводим вибрацию (если доступно)
                     if (navigator.vibrate) {
                         navigator.vibrate([100, 50, 100]);
                     }
                 } else {
-                    showNotification("🔍 Геометка найдена, но она пустая");
+                    showAlert("🔍 Геометка найдена, но она пустая");
                 }
             } else {
-                tg.showAlert(`Вы слишком далеко от этой метки! Расстояние: ${Math.round(distance)} м`);
+                showAlert(`Вы слишком далеко от этой метки! Расстояние: ${Math.round(distance)} м`);
             }
         }
         
@@ -507,6 +892,7 @@
         function updateGeospotMarker(spotId) {
             const spot = geospots.find(s => s.id === spotId);
             if (!spot || !markers[spotId]) return;
+            
             // Обновляем иконку маркера
             const found = foundSpots.includes(spotId);
             const icon = L.divIcon({
