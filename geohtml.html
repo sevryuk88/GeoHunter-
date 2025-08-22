@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GeoHunter - Охота за сокровищами</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 100%;
+            height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        #map {
+            flex: 1;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .found-marker {
+            filter: hue-rotate(120deg) brightness(1.2);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        @keyframes slideIn {
+            from { top: -100px; opacity: 0; }
+            to { top: 20px; opacity: 1; }
+        }
+        
+        .prize-notification {
+            background: linear-gradient(45deg, #f5af19, #f12711);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌎 GeoHunter</h1>
+            <div class="subtitle">Охота за сокровищами в реальном мире</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="found-count">0/5</div>
+                <div class="stat-label">Найдено меток</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="prize-total">0 ₽</div>
+                <div class="stat-label">Сумма выигрыша</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="balance">0 ₽</div>
+                <div class="stat-label">Баланс</div>
+            </div>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="showModeSelection()">
+                🎮 Выбрать режим
+            </button>
+            <button class="btn btn-primary" onclick="startGame()">
+                🚀 Начать игру
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        // Переменные для хранения состояния
+        let map, userMarker, gameMode = 'standard';
+        let geospots = [];
+        let foundSpots = [];
+        let userLocation = null;
+        
+        // Инициализация карты
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([55.7558, 37.6173], 13); // По умолчанию Москва
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(map);
+            
+            // Запрос местоположения пользователя
+            getLocation();
+        }
+        
+        // Получение местоположения пользователя
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = [position.coords.latitude, position.coords.longitude];
+                        map.setView(userLocation, 16);
+                        
+                        // Добавляем маркер пользователя
+                        userMarker = L.marker(userLocation, {
+                            icon: L.divIcon({
+                                className: 'user-marker',
+                                html: '<div style="background: #4285F4; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                            })
+                        }).addTo(map);
+                        
+                        userMarker.bindPopup("Ваше местоположение").openPopup();
+                    },
+                    error => {
+                        console.error("Ошибка получения геолокации:", error);
+                        tg.showPopup({
+                            title: "Геолокация недоступна",
+                            message: "Пожалуйста, разрешите доступ к геолокации для игры",
+                            buttons: [{type: "ok"}]
+                        });
+                    },
+                    {enableHighAccuracy: true, timeout: 10000}
+                );
+            }
+        }
+        
+        // Показ выбора режима игры
+        function showModeSelection() {
+            tg.showPopup({
+                title: "Выберите режим игры",
+                message: "Каждый режим предлагает разные ставки и призы",
+                buttons: [
+                    {id: "economy", type: "default", text: "🟢 Эконом (5 руб.)"},
+                    {id: "standard", type: "default", text: "🔵 Стандарт (10 руб.)"},
+                    {id: "premium", type: "default", text: "🟣 Премиум (15 руб.)"},
+                    {id: "cancel", type: "cancel"}
+                ],
+                onSelect: (id) => {
+                    if (id !== "cancel") {
+                        gameMode = id;
+                        tg.showAlert(`Выбран режим: ${getModeName(id)}`);
+                    }
+                }
+            });
+        }
+        
+        // Получение названия режима по ID
+        function getModeName(modeId) {
+            const modes = {
+                'economy': 'Эконом',
+                'standard': 'Стандарт',
+                'premium': 'Премиум'
+            };
+            return modes[modeId] || 'Неизвестно';
+        }
+        
+        // Начало игры
+        function startGame() {
+            if (!userLocation) {
+                tg.showAlert("Сначала разрешите доступ к геолокации");
+                getLocation();
+                return;
+            }
+            
+            // Отправка запроса на начало игры боту
+            tg.sendData(JSON.stringify({
+                action: 'start_game',
+                mode: gameMode,
+                lat: userLocation[0],
+                lon: userLocation[1]
+            }));
+            
+            // Показ уведомления о начале игры
+            showNotification("Игра началась! Ищите геометки вокруг себя", "success");
+        }
+        
+        // Показ уведомления
+        function showNotification(message, type = "info") {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type === 'prize' ? 'prize-notification' : ''}`;
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Обновление статистики
+        function updateStats() {
+            document.getElementById('found-count').textContent = `${foundSpots.length}/5`;
+            
+            const totalPrize = foundSpots.reduce((sum, spot) => sum + (spot.prize_amount || 0), 0);
+            document.getElementById('prize-total').textContent = `${totalPrize} ₽`;
+            
+            // Здесь можно добавить запрос к боту для получения актуального баланса
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            
+            // Обработка данных от бота
+            tg.onEvent('webAppDataReceived', (data) => {
+                try {
+                    const gameData = JSON.parse(data);
+                    if (gameData.status === 'success' && gameData.game_data) {
+                        // Отрисовка геометок на карте
+                        renderGeospots(gameData.game_data.geospots);
+                    }
+                } catch (e) {
+                    console.error("Ошибка обработки данных от бота:", e);
+                }
+            });
+        });
+        
+        // Отрисовка геометок на карте
+        function renderGeospots(spots) {
+            geospots = spots;
+            
+            spots.forEach((spot, index) => {
+                const marker = L.marker([spot.lat, spot.lon], {
+                    icon: L.divIcon({
+                        className: `geospot-marker ${spot.has_prize ? 'prize-marker' : 'empty-marker'}`,
+                        html: `<div style="background: ${spot.has_prize ? '#f5af19' : '#4285F4'}; 
+                                      width: 20px; height: 20px; border-radius: 50%; 
+                                      border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                                      display: flex; align-items: center; justify-content: center;
+                                      font-weight: bold; color: white;">${index + 1}</div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    })
+                }).addTo(map);
+                
+                marker.on('click', () => {
+                    if (!foundSpots.includes(spot.id)) {
+                        // Отметка как найденной
+                        foundSpots.push(spot.id);
+                        marker._icon.classList.add('found-marker');
+                        
+                        // Отправка данных боту
+                        tg.sendData(JSON.stringify({
+                            action: 'found_spot',
+                            spot_id: index
+                        }));
+                        
+                        // Обновление статистики
+                        updateStats();
+                        
+                        // Показ уведомления
+                        if (spot.has_prize) {
+                            showNotification(`🎉 Вы нашли приз ${spot.prize_amount} руб.!`, "prize");
+                        } else {
+                            showNotification("🔍 Геометка найдена, но она пустая");
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>
