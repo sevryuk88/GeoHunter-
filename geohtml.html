@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -43,8 +42,14 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
+        .header-content {
+            flex: 1;
+        }
         
         h1 {
             font-size: 22px;
@@ -105,7 +110,54 @@
             color: #ffdd00;
         }
         
-        .controls {
+        .control-panel {
+            position: absolute;
+            bottom: 80px;
+            left: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .control-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 12px;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+        
+        .control-btn i {
+            font-size: 20px;
+        }
+        
+        .control-btn.primary {
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+        }
+        
+        .game-controls {
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
@@ -153,63 +205,9 @@
             transform: translateY(1px);
         }
         
-        .pulse {
-            display: block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ffdd00;
-            cursor: pointer;
-            box-shadow: 0 0 0 rgba(255, 221, 0, 0.4);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(255, 221, 0, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(255, 221, 0, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(255, 221, 0, 0);
-            }
-        }
-        
-        .geospot-marker {
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-        }
-        
-        .geospot-prize {
-            background: linear-gradient(45deg, #f5af19, #f12711);
-            animation: pulse 1.5s infinite;
-        }
-        
-        .geospot-empty {
-            background: linear-gradient(45deg, #4285F4, #34A853);
-        }
-        
-        .geospot-found {
-            background: linear-gradient(45deg, #34A853, #0F9D58);
-        }
-        
-        .user-marker {
-            background: linear-gradient(45deg, #4285F4, #1a73e8);
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 10px rgba(66, 133, 244, 0.5);
-        }
-        
         .compass {
             position: absolute;
-            bottom: 80px;
+            bottom: 200px;
             right: 15px;
             width: 50px;
             height: 50px;
@@ -229,41 +227,9 @@
             color: white;
         }
         
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            z-index: 2000;
-            backdrop-filter: blur(10px);
-            animation: slideIn 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
-            text-align: center;
-            max-width: 80%;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-        }
-        
-        .notification.prize {
-            background: linear-gradient(45deg, rgba(245, 175, 25, 0.9), rgba(241, 39, 17, 0.9));
-        }
-        
-        @keyframes slideIn {
-            from { top: -100px; opacity: 0; }
-            to { top: 20px; opacity: 1; }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; visibility: hidden; }
-        }
-        
         .radar-sweep {
             position: absolute;
-            bottom: 140px;
+            bottom: 260px;
             right: 15px;
             width: 50px;
             height: 50px;
@@ -328,7 +294,108 @@
         .mode-standard { background: #4285F4; }
         .mode-premium { background: #EA4335; }
         
-        /* Адаптивность для разных устройств */
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .modal-content {
+            margin-bottom: 20px;
+        }
+        
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .modal-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        
+        .modal-btn.primary {
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Анимации */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Адаптивность */
         @media (max-width: 400px) {
             .header {
                 padding: 12px;
@@ -336,6 +403,10 @@
             
             h1 {
                 font-size: 18px;
+            }
+            
+            .control-panel {
+                grid-template-columns: repeat(2, 1fr);
             }
             
             .btn {
@@ -348,141 +419,144 @@
                 padding: 10px 12px;
             }
         }
-        
-        /* Эффект частиц на заднем фоне */
-        .particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            animation: float 15s infinite ease-in-out;
-        }
-        
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 0.2;
-            }
-            50% {
-                transform: translateY(-20px) rotate(180deg);
-                opacity: 0.5;
-            }
-        }
-        
-        /* Остальные стили остаются без изменений */
-        
-        .error-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            padding: 20px;
-        }
-        
-        .error-content {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 90%;
-        }
-        
-        .error-content h2 {
-            margin-bottom: 15px;
-            color: #ff6b6b;
-        }
-        
-        .error-content p {
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        
-        .error-btn {
-            padding: 12px 25px;
-            background: linear-gradient(45deg, #FF416C, #FF4B2B);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .error-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 75, 43, 0.4);
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .custom-alert {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            z-index: 10000;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 80%;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
-        }
-        
-        .custom-alert-btn {
-            margin-top: 15px;
-            padding: 8px 16px;
-            background: linear-gradient(45deg, #4285F4, #34A853);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
-    <div class="error-overlay hidden" id="error-overlay">
-        <div class="error-content">
-            <h2>❌ Ошибка геолокации</h2>
-            <p id="error-message">Для работы приложения необходим доступ к вашему местоположению. Пожалуйста, разрешите доступ к геолокации в настройках вашего браузера или устройства.</p>
-            <button class="error-btn" onclick="hideError()">Понятно</button>
-            <button class="error-btn" onclick="getLocation()" style="margin-left: 10px;">Повторить</button>
+    <!-- Модальное окно выбора режима -->
+    <div class="modal-overlay hidden" id="mode-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🎮 Выбор режима игры</div>
+                <button class="modal-close" onclick="hideModal('mode-modal')">×</button>
+            </div>
+            <div class="modal-content">
+                <p>Выберите режим игры для следующего раунда:</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="selectMode('economy')">🟢 Эконом (5 руб.)</button>
+                <button class="modal-btn" onclick="selectMode('standard')">🔵 Стандарт (10 руб.)</button>
+                <button class="modal-btn" onclick="selectMode('premium')">🟣 Премиум (15 руб.)</button>
+            </div>
         </div>
     </div>
 
-    <div class="custom-alert hidden" id="custom-alert">
-        <div id="alert-message"></div>
-        <button class="custom-alert-btn" onclick="hideAlert()">OK</button>
+    <!-- Модальное окно пополнения счета -->
+    <div class="modal-overlay hidden" id="deposit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">💳 Пополнение счета</div>
+                <button class="modal-close" onclick="hideModal('deposit-modal')">×</button>
+            </div>
+            <div class="modal-content">
+                <p>Выберите сумму для пополнения:</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="deposit(15)">15 руб. (1 игра)</button>
+                <button class="modal-btn" onclick="deposit(50)">50 руб. (3 игры + бонус)</button>
+                <button class="modal-btn primary" onclick="deposit(100)">100 руб. (7 игр + бонус)</button>
+            </div>
+        </div>
     </div>
 
-    <div class="particles" id="particles"></div>
-    
+    <!-- Модальное окно правил -->
+    <div class="modal-overlay hidden" id="rules-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📜 Правила игры</div>
+                <button class="modal-close" onclick="hideModal('rules-modal')">×</button>
+            </div>
+            <div class="modal-content">
+                <p>Добро пожаловать в GeoHunter! Вот как это работает:</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Выберите режим игры и внесите депозит</li>
+                    <li>Запустите игру, отправив свою геопозицию</li>
+                    <li>Я создам 5 скрытых геометок в радиусе 100 м</li>
+                    <li>Перемещайтесь по местности и ищите метки</li>
+                    <li>Когда приблизитесь к метке, вы получите уведомление</li>
+                    <li>Найдите все метки и соберите призы!</li>
+                </ol>
+                <p style="margin-top: 15px;">В каждом режиме разные ставки и призы:</p>
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li>🟢 Эконом: 5 руб. - призы 3-30 руб.</li>
+                    <li>🔵 Стандарт: 10 руб. - призы 5-50 руб.</li>
+                    <li>🟣 Премиум: 15 руб. - призы 10-100 руб.</li>
+                </ul>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="hideModal('rules-modal')">Понятно</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно статистики -->
+    <div class="modal-overlay hidden" id="stats-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📊 Ваша статистика</div>
+                <button class="modal-close" onclick="hideModal('stats-modal')">×</button>
+            </div>
+            <div class="modal-content">
+                <div class="stat-item">
+                    <span>Общее количество игр:</span>
+                    <span class="stat-value" id="total-games">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Найдено геометок:</span>
+                    <span class="stat-value" id="total-found">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Общий выигрыш:</span>
+                    <span class="stat-value" id="total-prize">0 руб.</span>
+                </div>
+                <div class="stat-item">
+                    <span>Текущий уровень:</span>
+                    <span class="stat-value" id="current-level">Новичок</span>
+                </div>
+                <div class="stat-item">
+                    <span>Опыт до следующего уровня:</span>
+                    <span class="stat-value" id="xp-to-next">0 XP</span>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="hideModal('stats-modal')">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно реферальной программы -->
+    <div class="modal-overlay hidden" id="referral-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">👥 Пригласите друзей</div>
+                <button class="modal-close" onclick="hideModal('referral-modal')">×</button>
+            </div>
+            <div class="modal-content">
+                <p>Поделитесь своей реферальной ссылкой с друзьями и получайте бонусы!</p>
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0; word-break: break-all;">
+                    https://t.me/GeoHunterBot?start=ref12345
+                </div>
+                <p>За каждого приглашенного друга:</p>
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li>Вы получаете 5 руб. на счет</li>
+                    <li>Друг получает 1 бесплатную игру</li>
+                </ul>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="copyReferralLink()">📋 Скопировать ссылку</button>
+                <button class="modal-btn primary" onclick="hideModal('referral-modal')">Готово</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
-            <h1>🌎 GeoHunter</h1>
-            <div class="subtitle">Охота за сокровищами в реальном мире</div>
+            <div class="header-content">
+                <h1>🌎 GeoHunter</h1>
+                <div class="subtitle">Охота за сокровищами в реальном мире</div>
+            </div>
+            <div class="menu-icon" onclick="toggleMenu()">
+                <i class="fas fa-bars"></i>
+            </div>
         </div>
         
         <div class="game-status" id="game-status">
@@ -509,6 +583,33 @@
             <div id="map"></div>
         </div>
         
+        <div class="control-panel">
+            <button class="control-btn" onclick="showModal('mode-modal')">
+                <i class="fas fa-gamepad"></i>
+                <span>Режим</span>
+            </button>
+            <button class="control-btn" onclick="showModal('deposit-modal')">
+                <i class="fas fa-coins"></i>
+                <span>Пополнить</span>
+            </button>
+            <button class="control-btn" onclick="showModal('referral-modal')">
+                <i class="fas fa-users"></i>
+                <span>Пригласить</span>
+            </button>
+            <button class="control-btn" onclick="showModal('rules-modal')">
+                <i class="fas fa-book"></i>
+                <span>Правила</span>
+            </button>
+            <button class="control-btn" onclick="showModal('stats-modal')">
+                <i class="fas fa-chart-line"></i>
+                <span>Статистика</span>
+            </button>
+            <button class="control-btn" onclick="checkBalance()">
+                <i class="fas fa-wallet"></i>
+                <span>Баланс</span>
+            </button>
+        </div>
+        
         <div class="compass" id="compass">
             <i class="fas fa-compass"></i>
         </div>
@@ -517,12 +618,12 @@
             <i class="fas fa-radar"></i>
         </div>
         
-        <div class="controls">
-            <button class="btn btn-secondary" onclick="showModeSelection()">
-                <i class="fas fa-cog"></i> Режим
+        <div class="game-controls">
+            <button class="btn btn-secondary" onclick="showModal('mode-modal')">
+                <i class="fas fa-cog"></i> Сменить режим
             </button>
             <button class="btn btn-primary" onclick="startGame()">
-                <i class="fas fa-play"></i> Играть
+                <i class="fas fa-play"></i> Начать игру
             </button>
         </div>
     </div>
@@ -538,6 +639,90 @@
         let foundSpots = [];
         let userLocation = null;
         let markers = [];
+        let userBalance = 100; // Начальный баланс для демонстрации
+        
+        // Функции для работы с модальными окнами
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+        
+        function toggleMenu() {
+            // Здесь можно добавить функционал бокового меню, если нужно
+            showModal('stats-modal');
+        }
+        
+        // Функции управления игрой
+        function selectMode(mode) {
+            gameMode = mode;
+            updateGameStatus();
+            hideModal('mode-modal');
+            showAlert(`Режим изменен на: ${getModeName(mode)}`);
+        }
+        
+        function getModeName(modeId) {
+            const modes = {
+                'economy': 'Эконом',
+                'standard': 'Стандарт',
+                'premium': 'Премиум'
+            };
+            return modes[modeId] || 'Неизвестно';
+        }
+        
+        function updateGameStatus() {
+            const statusElement = document.getElementById('game-status');
+            const indicator = statusElement.querySelector('.mode-indicator');
+            
+            // Удаляем предыдущие классы
+            indicator.className = 'mode-indicator';
+            
+            // Добавляем соответствующий класс
+            if (gameMode === 'economy') {
+                indicator.classList.add('mode-economy');
+                statusElement.querySelector('span:last-child').textContent = 'Эконом';
+            } else if (gameMode === 'standard') {
+                indicator.classList.add('mode-standard');
+                statusElement.querySelector('span:last-child').textContent = 'Стандарт';
+            } else if (gameMode === 'premium') {
+                indicator.classList.add('mode-premium');
+                statusElement.querySelector('span:last-child').textContent = 'Премиум';
+            }
+        }
+        
+        function deposit(amount) {
+            // В реальном приложении здесь будет интеграция с платежной системой
+            userBalance += amount;
+            updateBalance();
+            hideModal('deposit-modal');
+            
+            let bonusText = '';
+            if (amount === 50) bonusText = ' (+5 руб. бонус)';
+            if (amount === 100) bonusText = ' (+15 руб. бонус)';
+            
+            showAlert(`Счет пополнен на ${amount} руб.${bonusText}`);
+        }
+        
+        function updateBalance() {
+            document.getElementById('balance').textContent = `${userBalance} ₽`;
+        }
+        
+        function checkBalance() {
+            showAlert(`Ваш текущий баланс: ${userBalance} руб.`);
+        }
+        
+        function copyReferralLink() {
+            // В реальном приложении здесь будет реальная реферальная ссылка
+            navigator.clipboard.writeText('https://t.me/GeoHunterBot?start=ref12345')
+                .then(() => {
+                    showAlert('Реферальная ссылка скопирована!');
+                })
+                .catch(err => {
+                    showAlert('Не удалось скопировать ссылку');
+                });
+        }
         
         // Безопасная функция для показа уведомлений
         function showAlert(message) {
@@ -546,59 +731,12 @@
                 try {
                     tg.showAlert(message);
                 } catch (e) {
-                    // Если метод не работает, используем кастомное уведомление
-                    showCustomAlert(message);
+                    // Если метод не работает, используем стандартный alert
+                    alert(message);
                 }
             } else {
-                // Если метод недоступен, используем кастомное уведомление
-                showCustomAlert(message);
-            }
-        }
-        
-        // Кастомное уведомление
-        function showCustomAlert(message) {
-            const alertElement = document.getElementById('custom-alert');
-            const messageElement = document.getElementById('alert-message');
-            
-            messageElement.innerHTML = message;
-            alertElement.classList.remove('hidden');
-        }
-        
-        function hideAlert() {
-            document.getElementById('custom-alert').classList.add('hidden');
-        }
-        
-        // Функции для работы с ошибками
-        function showError(message) {
-            const errorOverlay = document.getElementById('error-overlay');
-            const errorText = document.getElementById('error-message');
-            errorText.textContent = message;
-            errorOverlay.classList.remove('hidden');
-        }
-        
-        function hideError() {
-            document.getElementById('error-overlay').classList.add('hidden');
-        }
-        
-        // Создание эффекта частиц на заднем фоне
-        function createParticles() {
-            const particlesContainer = document.getElementById('particles');
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                
-                // Случайный размер и позиция
-                const size = Math.random() * 10 + 5;
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                
-                particle.style.left = `${Math.random() * 100}%`;
-                particle.style.top = `${Math.random() * 100}%`;
-                
-                // Случайная задержка анимации
-                particle.style.animationDelay = `${Math.random() * 15}s`;
-                
-                particlesContainer.appendChild(particle);
+                // Если метод недоступен, используем стандартный alert
+                alert(message);
             }
         }
         
@@ -618,30 +756,8 @@
                 attribution: '&copy; OpenStreetMap'
             });
             
-            const darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap & CartoDB',
-                maxZoom: 19
-            });
-            
-            const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '&copy; Esri & Earthstar Geographics',
-                maxZoom: 19
-            });
-            
             // Добавляем светлую карту по умолчанию
             lightMap.addTo(map);
-            
-            // Создаем контроллер слоев
-            const baseMaps = {
-                "Светлая": lightMap,
-                "Темная": darkMap,
-                "Спутник": satelliteMap
-            };
-            
-            L.control.layers(baseMaps).addTo(map);
-            
-            // Скрываем контроллер слоев по умолчанию
-            document.querySelector('.leaflet-control-layers').style.display = 'none';
             
             // Кастомный контрол зума
             L.control.zoom({
@@ -654,8 +770,6 @@
         
         // Получение местоположения пользователя
         function getLocation() {
-            hideError(); // Скрываем ошибки перед запросом
-            
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     position => {
@@ -677,11 +791,6 @@
                         
                         // Обновляем компас
                         updateCompass(position.coords.heading);
-                        
-                        // Если есть геометки, обновляем их отображение
-                        if (geospots.length > 0) {
-                            renderGeospots();
-                        }
                     },
                     error => {
                         console.error("Ошибка получения геолокации:", error);
@@ -701,32 +810,13 @@
                                 errorMessage += "Произошла неизвестная ошибка.";
                         }
                         
-                        showError(errorMessage);
+                        showAlert(errorMessage);
                     },
                     // Увеличиваем таймаут до 30 секунд
                     {enableHighAccuracy: true, timeout: 30000, maximumAge: 30000}
                 );
-                
-                // Следим за изменением положения
-                navigator.geolocation.watchPosition(
-                    position => {
-                        if (userMarker && position.coords.accuracy < 50) {
-                            const newLocation = [position.coords.latitude, position.coords.longitude];
-                            userMarker.setLatLng(newLocation);
-                            userLocation = newLocation;
-                            
-                            // Обновляем компас
-                            updateCompass(position.coords.heading);
-                            
-                            // Проверяем близость к геометкам
-                            checkProximityToGeospots();
-                        }
-                    },
-                    null,
-                    {enableHighAccuracy: true, maximumAge: 10000}
-                );
             } else {
-                showError("Ваш браузер не поддерживает геолокацию.");
+                showAlert("Ваш браузер не поддерживает геолокацию.");
             }
         }
         
@@ -738,42 +828,6 @@
             }
         }
         
-        // Показ выбора режима игры
-        function showModeSelection() {
-            showAlert("Выберите режим игры:\n\n🟢 Эконом (5 руб.)\n🔵 Стандарт (10 руб.)\n🟣 Премиум (15 руб.)");
-        }
-        
-        // Обновление статуса игры
-        function updateGameStatus() {
-            const statusElement = document.getElementById('game-status');
-            const indicator = statusElement.querySelector('.mode-indicator');
-            
-            // Удаляем предыдущие классы
-            indicator.className = 'mode-indicator';
-            
-            // Добавляем соответствующий класс
-            if (gameMode === 'economy') {
-                indicator.classList.add('mode-economy');
-                statusElement.querySelector('span:last-child').textContent = 'Эконом';
-            } else if (gameMode === 'standard') {
-                indicator.classList.add('mode-standard');
-                statusElement.querySelector('span:last-child').textContent = 'Стандарт';
-            } else if (gameMode === 'premium') {
-                indicator.classList.add('mode-premium');
-                statusElement.querySelector('span:last-child').textContent = 'Премиум';
-            }
-        }
-        
-        // Получение названия режима по ID
-        function getModeName(modeId) {
-            const modes = {
-                'economy': 'Эконом',
-                'standard': 'Стандарт',
-                'premium': 'Премиум'
-            };
-            return modes[modeId] || 'Неизвестно';
-        }
-        
         // Начало игры
         function startGame() {
             if (!userLocation) {
@@ -781,6 +835,25 @@
                 getLocation();
                 return;
             }
+            
+            // Проверяем баланс
+            const modeConfig = {
+                'economy': { entryFee: 5 },
+                'standard': { entryFee: 10 },
+                'premium': { entryFee: 15 }
+            };
+            
+            const entryFee = modeConfig[gameMode].entryFee;
+            
+            if (userBalance < entryFee) {
+                showAlert(`Недостаточно средств для игры в режиме ${getModeName(gameMode)}. Необходимо: ${entryFee} руб.`);
+                showModal('deposit-modal');
+                return;
+            }
+            
+            // Списываем средства
+            userBalance -= entryFee;
+            updateBalance();
             
             // Отправка запроса на начало игры боту
             tg.sendData(JSON.stringify({
@@ -791,196 +864,14 @@
             }));
             
             // Показ уведомления о начале игры
-            showAlert("Игра началась! Ищите геометки вокруг себя");
+            showAlert(`Игра началась в режиме ${getModeName(gameMode)}! Ищите геометки вокруг себя.`);
         }
-        
-        // Проверка близости к геометкам
-        function checkProximityToGeospots() {
-            if (!userLocation || geospots.length === 0) return;
-            
-            geospots.forEach((spot, index) => {
-                if (!foundSpots.includes(spot.id)) {
-                    const distance = calculateDistance(
-                        userLocation[0], userLocation[1],
-                        spot.lat, spot.lon
-                    );
-                    
-                    if (distance <= 30) { // 30 метров - радиус обнаружения
-                        // Увеличиваем маркер при приближении
-                        if (markers[index]) {
-                            markers[index].setZIndexOffset(1000);
-                            
-                            // Анимируем маркер
-                            const markerElement = markers[index].getElement();
-                            if (markerElement) {
-                                markerElement.style.transform = 'scale(1.2)';
-                                setTimeout(() => {
-                                    markerElement.style.transform = 'scale(1)';
-                                }, 500);
-                            }
-                        }
-                        
-                        if (distance <= 10) { // 10 метров - автоматическое нахождение
-                            handleGeospotClick(spot.id);
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Расчет расстояния между двумя точками (в метрах)
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Радиус Земли в метрах
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-        
-        // Обработка клика по геометке
-        function handleGeospotClick(spotId) {
-            if (!userLocation) {
-                showAlert("Сначала получите ваше местоположение");
-                return;
-            }
-            
-            const spot = geospots.find(s => s.id === spotId);
-            if (!spot || foundSpots.includes(spotId)) return;
-            
-            const distance = calculateDistance(
-                userLocation[0], userLocation[1],
-                spot.lat, spot.lon
-            );
-            
-            if (distance <= 50) { // 50 метров - радиус обнаружения
-                // Отправляем данные боту
-                tg.sendData(JSON.stringify({
-                    action: 'found_spot',
-                    spot_id: spotId
-                }));
-                
-                // Добавляем в найденные
-                foundSpots.push(spotId);
-                
-                // Обновляем отображение
-                updateGeospotMarker(spotId);
-                
-                // Обновляем статистику
-                updateStats();
-                
-                // Показываем уведомление
-                if (spot.has_prize) {
-                    showAlert(`🎉 Вы нашли приз ${spot.prize_amount} руб.!`);
-                    
-                    // Воспроизводим вибрацию (если доступно)
-                    if (navigator.vibrate) {
-                        navigator.vibrate([100, 50, 100]);
-                    }
-                } else {
-                    showAlert("🔍 Геометка найдена, но она пустая");
-                }
-            } else {
-                showAlert(`Вы слишком далеко от этой метки! Расстояние: ${Math.round(distance)} м`);
-            }
-        }
-        
-        // Обновление маркера геометки
-        function updateGeospotMarker(spotId) {
-            const spot = geospots.find(s => s.id === spotId);
-            if (!spot || !markers[spotId]) return;
-            
-            // Обновляем иконку маркера
-            const found = foundSpots.includes(spotId);
-            const icon = L.divIcon({
-                className: `geospot-marker ${found ? 'geospot-found' : (spot.has_prize ? 'geospot-prize' : 'geospot-empty')}`,
-                html: `<div style="width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">${spotId + 1}</div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
-            
-            markers[spotId].setIcon(icon);
-        }
-        
-        // Обновление статистики
-        function updateStats() {
-            document.getElementById('found-count').textContent = `${foundSpots.length}/${geospots.length}`;
-            
-            const totalPrize = geospots
-                .filter(spot => foundSpots.includes(spot.id) && spot.has_prize)
-                .reduce((sum, spot) => sum + spot.prize_amount, 0);
-            
-            document.getElementById('prize-total').textContent = `${totalPrize} ₽`;
-            
-            // Здесь можно добавить запрос к боту для получения актуального баланса
-            // document.getElementById('balance').textContent = `${currentBalance} ₽`;
-        }
-        
-        // Отрисовка геометок на карте
-        function renderGeospots() {
-            // Очищаем предыдущие маркеры
-            markers.forEach(marker => map.removeLayer(marker));
-            markers = [];
-            
-            // Добавляем новые маркеры
-            geospots.forEach((spot, index) => {
-                const found = foundSpots.includes(spot.id);
-                const icon = L.divIcon({
-                    className: `geospot-marker ${found ? 'geospot-found' : (spot.has_prize ? 'geospot-prize' : 'geospot-empty')}`,
-                    html: `<div style="width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">${index + 1}</div>`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
-                });
-                
-                const marker = L.marker([spot.lat, spot.lon], { icon })
-                    .addTo(map)
-                    .bindPopup(`Геометка #${index + 1}<br>${found ? 'Найдена' : 'Не найдена'}`)
-                    .on('click', () => {
-                        handleGeospotClick(spot.id);
-                    });
-                
-                markers.push(marker);
-            });
-            
-            // Обновляем статистику
-            updateStats();
-        }
-        
-        // Обработка данных от бота
-        tg.onEvent('webAppDataReceived', (data) => {
-            try {
-                const gameData = JSON.parse(data);
-                if (gameData.status === 'success' && gameData.game_data) {
-                    // Сохраняем геометки
-                    geospots = gameData.game_data.geospots.map((spot, index) => ({
-                        ...spot,
-                        id: index
-                    }));
-                    
-                    // Отрисовываем геометки
-                    renderGeospots();
-                    
-                    // Центрируем карту на пользователе
-                    if (userLocation) {
-                        map.setView(userLocation, 17);
-                    }
-                    
-                    // Показываем контроллер слоев
-                    document.querySelector('.leaflet-control-layers').style.display = 'block';
-                }
-            } catch (e) {
-                console.error("Ошибка обработки данных от бота:", e);
-            }
-        });
         
         // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', () => {
-            createParticles();
             initMap();
             updateGameStatus();
+            updateBalance();
             
             // Обновление размеров при изменении окна
             window.addEventListener('resize', () => {
@@ -992,3 +883,4 @@
     </script>
 </body>
 </html>
+  
