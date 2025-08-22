@@ -345,7 +345,7 @@ def generate_near_miss():
 def get_main_menu_keyboard():
     keyboard = [
         [InlineKeyboardButton("🎮 Начать игру", callback_data='choose_mode')],
-        [InlineKeyboardButton("🌎 Открыть карту", web_app=WebAppInfo(url="https://sevryuk88.github.io/GeoHunter-/"))],
+        [InlineKeyboardButton("🌎 Открыть карту", web_app=WebAppInfo(url="https://sevryuk88.github.io/GeoHunter-/geohtml.html"))],
    
         [InlineKeyboardButton("💰 Мой баланс", callback_data='check_balance')],
         [InlineKeyboardButton("💳 Пополнить счет", callback_data='make_deposit')],
@@ -993,63 +993,80 @@ async def handle_text(update: Update, context: CallbackContext) -> None:
 
 async def web_app_data(update: Update, context: CallbackContext) -> None:
     """Обработка данных из Web App"""
-    query = update.callback_query
-    await query.answer()
-    
-    # Получаем данные из Web App
-    data = json.loads(update.effective_message.web_app_data.data)
-    user = update.effective_user
-    action = data.get('action')
-    
-    if action == 'start_game':
-        # Обработка начала игры из Web App
-        game_mode = data.get('mode', 'standard')
-        lat = data.get('lat')
-        lon = data.get('lon')
+    try:
+        data = json.loads(update.effective_message.web_app_data.data)
+        user = update.effective_user
+        action = data.get('action')
         
-        # Проверяем баланс
-        mode_config = GAME_MODES[game_mode]
-        if user.id not in user_balances or user_balances[user.id] < mode_config['entry_fee']:
+        if action == 'start_game':
+            # Обработка начала игры из Web App
+            game_mode = data.get('mode', 'standard')
+            lat = data.get('lat')
+            lon = data.get('lon')
+            
+            # Проверяем баланс
+            mode_config = GAME_MODES[game_mode]
+            if user.id not in user_balances or user_balances[user.id] < mode_config['entry_fee']:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"❌ Недостаточно средств для игры в режиме {mode_config['name']}",
+                    reply_markup=get_main_menu_keyboard()
+                )
+                return
+            
+            # Создаем игру
+            game = GeoGame(user.id, lat, lon, game_mode)
+            games[user.id] = game
+            
+            # Подготавливаем данные для отправки в Web App
+            geospots_data = []
+            for i, spot in enumerate(game.geospots):
+                geospots_data.append({
+                    'id': i,
+                    'lat': spot['coords'][0],
+                    'lon': spot['coords'][1],
+                    'has_prize': spot['has_prize'],
+                    'prize_amount': spot['prize_amount']
+                })
+            
+            # Отправляем данные обратно в Web App
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"❌ Недостаточно средств для игры в режиме {mode_config['name']}",
-                reply_markup=get_main_menu_keyboard()
+                text=json.dumps({
+                    'status': 'success',
+                    'game_data': {
+                        'geospots': geospots_data,
+                        'center': [lat, lon],
+                        'radius': SEARCH_RADIUS
+                    }
+                }),
+                parse_mode='HTML'
             )
-            return
-        
-        # Создаем игру
-        game = GeoGame(user.id, lat, lon, game_mode)
-        games[user.id] = game
-        
-        # Отправляем подтверждение
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"🎮 Игра начата в режиме {mode_config['name']}! Ищите {len(game.geospots)} геометок вокруг себя.",
-            reply_markup=get_game_keyboard()
-        )
-        
-    elif action == 'found_spot':
-        # Обработка найденной геометки
-        spot_id = data.get('spot_id')
-        if user.id in games:
-            game = games[user.id]
-            if 0 <= spot_id < len(game.geospots) and not game.geospots[spot_id]['found']:
-                game.geospots[spot_id]['found'] = True
-                game.found_spots.append(game.geospots[spot_id])
-                
-                # Начисляем приз, если есть
-                if game.geospots[spot_id]['has_prize']:
-                    prize = game.geospots[spot_id]['prize_amount']
-                    user_balances[user.id] += prize
-                    log_transaction(user.id, prize, "prize_won")
+            
+        elif action == 'found_spot':
+            # Обработка найденной геометки
+            spot_id = data.get('spot_id')
+            if user.id in games:
+                game = games[user.id]
+                if 0 <= spot_id < len(game.geospots) and not game.geospots[spot_id]['found']:
+                    game.geospots[spot_id]['found'] = True
+                    game.found_spots.append(game.geospots[spot_id])
                     
-                    # Отправляем уведомление о выигрыше
-                    await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text=f"🎉 Поздравляем! Вы нашли геометку с призом {prize} руб.!",
-                        reply_markup=get_main_menu_keyboard()
-                    )
-
+                    # Начисляем приз, если есть
+                    if game.geospots[spot_id]['has_prize']:
+                        prize = game.geospots[spot_id]['prize_amount']
+                        user_balances[user.id] += prize
+                        log_transaction(user.id, prize, "prize_won")
+                        
+                        # Отправляем уведомление о выигрыше
+                        await context.bot.send_message(
+                            chat_id=update.effective_chat.id,
+                            text=f"🎉 Поздравляем! Вы нашли геометку с призом {prize} руб.!",
+                            reply_markup=get_main_menu_keyboard()
+                        )
+    
+    except Exception as e:
+        logger.error(f"Error processing web app data: {e}")
 # ... остальные обработчики ...
 
 async def user_stats(update: Update, context: CallbackContext) -> None:
