@@ -526,6 +526,21 @@
             font-weight: 600;
             cursor: pointer;
         }
+        
+        .tracking-status {
+            position: absolute;
+            top: 70px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow);
+        }
     </style>
 </head>
 <body>
@@ -555,6 +570,11 @@
                 <p>Не удалось определить ваше местоположение</p>
                 <p style="font-size: 14px; margin-bottom: 10px;">Проверьте настройки геолокации в вашем браузере</p>
                 <button class="retry-btn" id="retryLocation">Попробовать снова</button>
+            </div>
+            
+            <div class="tracking-status" id="trackingStatus" style="display: none;">
+                <i class="fas fa-satellite" style="color: var(--accent-color);"></i>
+                <span>Отслеживание активно</span>
             </div>
             
             <div class="radar-sweep"></div>
@@ -649,7 +669,7 @@
                 
                 <div class="geospot-item">
                     <div class="geospot-icon">
-                        <i class="fas fa-gem"></i>
+                      <i class="fas fa-gem"></i>
                     </div>
                     <div class="geospot-info">
                         <div class="geospot-name">Парк Фестивальный</div>
@@ -661,7 +681,7 @@
                     <div class="geospot-value">15₽</div>
                 </div>
                 
-               <div class="geospot-item">
+                <div class="geospot-item">
                     <div class="geospot-icon found">
                         <i class="fas fa-check"></i>
                     </div>
@@ -701,9 +721,10 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         
-        let userMarker, radiusCircle;
+        let userMarker, radiusCircle, watchId;
         const locationLoader = document.getElementById('locationLoader');
         const locationError = document.getElementById('locationError');
+        const trackingStatus = document.getElementById('trackingStatus');
         
         // Функция для получения местоположения пользователя
         function getUserLocation() {
@@ -711,14 +732,28 @@
             locationError.style.display = 'none';
             
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
+                // Останавливаем предыдущее отслеживание, если оно было
+                if (watchId) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+                
+                // Запускаем отслеживание местоположения в реальном времени
+                watchId = navigator.geolocation.watchPosition(
                     position => {
                         // Успешно получили местоположение
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
                         
-                        // Центрируем карту на местоположении пользователя
-                        map.setView([userLat, userLng], 15);
+                        // Показываем статус отслеживания
+                        trackingStatus.style.display = 'flex';
+                        
+                        // Центрируем карту на местоположении пользователя (только при первом получении)
+                        if (!userMarker) {
+                            map.setView([userLat, userLng], 15);
+                            
+                            // Добавляем геометки вокруг пользователя
+                            addGeospotsAroundUser(userLat, userLng);
+                        }
                         
                         // Добавляем/обновляем маркер пользователя
                         if (userMarker) {
@@ -746,8 +781,8 @@
                             }).addTo(map);
                         }
                         
-                        // Добавляем примеры геометок вокруг пользователя
-                        addGeospotsAroundUser(userLat, userLng);
+                        // Проверяем близость к геометкам
+                        checkProximityToGeospots(userLat, userLng);
                         
                         // Скрываем индикатор загрузки
                         locationLoader.style.display = 'none';
@@ -757,11 +792,13 @@
                         console.error('Ошибка получения геолокации:', error);
                         locationLoader.style.display = 'none';
                         locationError.style.display = 'flex';
+                        trackingStatus.style.display = 'none';
                     },
                     {
                         enableHighAccuracy: true,
                         timeout: 10000,
-                        maximumAge: 60000
+                        maximumAge: 0, // Всегда получать свежее местоположение
+                        distanceFilter: 5 // Обновлять при перемещении на 5 метров
                     }
                 );
             } else {
@@ -770,6 +807,13 @@
                 locationError.style.display = 'flex';
                 locationError.querySelector('p').textContent = 'Ваш браузер не поддерживает геолокацию';
             }
+        }
+        
+        // Функция для проверки близости к геометкам
+        function checkProximityToGeospots(userLat, userLng) {
+            // В реальном приложении здесь будет код проверки расстояния до геометок
+            // и отображения уведомлений при приближении
+            console.log("Проверка близости к геометкам...");
         }
         
         // Функция для добавления геометок вокруг пользователя
@@ -896,6 +940,13 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
+        
+        // Остановка отслеживания при закрытии приложения
+        window.addEventListener('beforeunload', () => {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
     </script>
 </body>
 </html>
