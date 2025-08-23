@@ -97,6 +97,37 @@
             z-index: 1;
         }
         
+        .location-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--light-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .controls {
             position: absolute;
             bottom: 20px;
@@ -467,6 +498,34 @@
             margin: 10px 0;
             color: var(--secondary-color);
         }
+        
+        .location-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            max-width: 80%;
+        }
+        
+        .retry-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -485,6 +544,18 @@
         
         <div class="map-container">
             <div id="map"></div>
+            
+            <div class="location-loader" id="locationLoader">
+                <div class="loader-spinner"></div>
+                <p>Определяем ваше местоположение...</p>
+            </div>
+            
+            <div class="location-error" id="locationError" style="display: none;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: var(--danger-color);"></i>
+                <p>Не удалось определить ваше местоположение</p>
+                <p style="font-size: 14px; margin-bottom: 10px;">Проверьте настройки геолокации в вашем браузере</p>
+                <button class="retry-btn" id="retryLocation">Попробовать снова</button>
+            </div>
             
             <div class="radar-sweep"></div>
             
@@ -553,7 +624,7 @@
                         <i class="fas fa-coins"></i>
                     </div>
                     <div class="geospot-info">
-                        <div class="geospot-name">Парк Горького</div>
+                        <div class="geospot-name">Площадь Ленина</div>
                         <div class="geospot-meta">
                             <span><i class="fas fa-road"></i> 150м</span>
                             <span><i class="fas fa-bolt"></i> Средняя</span>
@@ -567,7 +638,7 @@
                         <i class="fas fa-check"></i>
                     </div>
                     <div class="geospot-info">
-                        <div class="geospot-name">Красная площадь</div>
+                        <div class="geospot-name">Гомельский дворцово-парковый ансамбль</div>
                         <div class="geospot-meta">
                             <span><i class="fas fa-road"></i> Найдено</span>
                             <span><i class="fas fa-bolt"></i> Высокая</span>
@@ -581,7 +652,7 @@
                         <i class="fas fa-gem"></i>
                     </div>
                     <div class="geospot-info">
-                        <div class="geospot-name">ВДНХ</div>
+                        <div class="geospot-name">Парк Фестивальный</div>
                         <div class="geospot-meta">
                             <span><i class="fas fa-road"></i> 320м</span>
                             <span><i class="fas fa-bolt"></i> Низкая</span>
@@ -590,12 +661,12 @@
                     <div class="geospot-value">15₽</div>
                 </div>
                 
-                <div class="geospot-item">
+               <div class="geospot-item">
                     <div class="geospot-icon found">
                         <i class="fas fa-check"></i>
                     </div>
                     <div class="geospot-info">
-                        <div class="geospot-name">Арбат</div>
+                        <div class="geospot-name">Центральный рынок</div>
                         <div class="geospot-meta">
                             <span><i class="fas fa-road"></i> Найдено</span>
                             <span><i class="fas fa-bolt"></i> Средняя</span>
@@ -609,7 +680,7 @@
                         <i class="fas fa-coins"></i>
                     </div>
                     <div class="geospot-info">
-                        <div class="geospot-name">Зарядье</div>
+                        <div class="geospot-name">Набережная реки Сож</div>
                         <div class="geospot-meta">
                             <span><i class="fas fa-road"></i> 210м</span>
                             <span><i class="fas fa-bolt"></i> Высокая</span>
@@ -622,57 +693,153 @@
     </div>
 
     <script>
-        // Инициализация карты
-        let map = L.map('map').setView([55.7558, 37.6173], 15);
+        // Инициализация карты с центром на Гомеле (координаты по умолчанию)
+        let map = L.map('map').setView([52.4345, 30.9754], 15);
         
         // Добавление слоя карты (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         
-        // Добавление маркера пользователя
-        let userMarker = L.marker([55.7558, 37.6173], {
-            icon: L.divIcon({
-                className: 'user-marker',
-                html: '<div class="pulse"></div>',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            })
-        }).addTo(map);
+        let userMarker, radiusCircle;
+        const locationLoader = document.getElementById('locationLoader');
+        const locationError = document.getElementById('locationError');
         
-        // Добавление круга радиуса
-        let radiusCircle = L.circle([55.7558, 37.6173], {
-            color: '#6a40bf',
-            fillColor: '#6a40bf',
-            fillOpacity: 0.1,
-            radius: 100
-        }).addTo(map);
-        
-        // Добавление примеров геометок
-        let geospots = [
-            { lat: 55.7580, lng: 37.6170, name: "Парк Горького", value: 30, found: false },
-            { lat: 55.7539, lng: 37.6208, name: "Красная площадь", value: 50, found: true },
-            { lat: 55.7500, lng: 37.6250, name: "ВДНХ", value: 15, found: false },
-            { lat: 55.7495, lng: 37.6130, name: "Арбат", value: 35, found: true },
-            { lat: 55.7510, lng: 37.6290, name: "Зарядье", value: 70, found: false }
-        ];
-        
-        geospots.forEach(spot => {
-            let marker = L.marker([spot.lat, spot.lng], {
-                icon: L.divIcon({
-                    className: `custom-marker ${spot.found ? 'found' : ''}`,
-                    html: `<i class="${spot.found ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 32]
-                })
-            }).addTo(map);
+        // Функция для получения местоположения пользователя
+        function getUserLocation() {
+            locationLoader.style.display = 'flex';
+            locationError.style.display = 'none';
             
-            marker.bindPopup(`
-                <div style="font-weight: bold; margin-bottom: 8px;">${spot.name}</div>
-                <div>Награда: <b>${spot.value}₽</b></div>
-                <div>Статус: <b>${spot.found ? 'Найдено' : 'Не найдено'}</b></div>
-            `);
-        });
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        // Успешно получили местоположение
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        
+                        // Центрируем карту на местоположении пользователя
+                        map.setView([userLat, userLng], 15);
+                        
+                        // Добавляем/обновляем маркер пользователя
+                        if (userMarker) {
+                            userMarker.setLatLng([userLat, userLng]);
+                        } else {
+                            userMarker = L.marker([userLat, userLng], {
+                                icon: L.divIcon({
+                                    className: 'user-marker',
+                                    html: '<div class="pulse"></div>',
+                                    iconSize: [24, 24],
+                                    iconAnchor: [12, 12]
+                                })
+                            }).addTo(map);
+                        }
+                        
+                        // Добавляем/обновляем круг радиуса
+                        if (radiusCircle) {
+                            radiusCircle.setLatLng([userLat, userLng]);
+                        } else {
+                            radiusCircle = L.circle([userLat, userLng], {
+                                color: '#6a40bf',
+                                fillColor: '#6a40bf',
+                                fillOpacity: 0.1,
+                                radius: 100
+                            }).addTo(map);
+                        }
+                        
+                        // Добавляем примеры геометок вокруг пользователя
+                        addGeospotsAroundUser(userLat, userLng);
+                        
+                        // Скрываем индикатор загрузки
+                        locationLoader.style.display = 'none';
+                    },
+                    error => {
+                        // Ошибка получения местоположения
+                        console.error('Ошибка получения геолокации:', error);
+                        locationLoader.style.display = 'none';
+                        locationError.style.display = 'flex';
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            } else {
+                // Браузер не поддерживает геолокацию
+                locationLoader.style.display = 'none';
+                locationError.style.display = 'flex';
+                locationError.querySelector('p').textContent = 'Ваш браузер не поддерживает геолокацию';
+            }
+        }
+        
+        // Функция для добавления геометок вокруг пользователя
+        function addGeospotsAroundUser(userLat, userLng) {
+            // Удаляем существующие геометки, если есть
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer !== userMarker) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Добавляем новые геометки вокруг пользователя
+            const geospots = [
+                { 
+                    lat: userLat + 0.001, 
+                    lng: userLng + 0.001, 
+                    name: "Площадь Ленина", 
+                    value: 30, 
+                    found: false 
+                },
+                { 
+                    lat: userLat - 0.0008, 
+                    lng: userLng + 0.0005, 
+                    name: "Гомельский дворцово-парковый ансамбль", 
+                    value: 50, 
+                    found: true 
+                },
+                { 
+                    lat: userLat + 0.0012, 
+                    lng: userLng - 0.001, 
+                    name: "Парк Фестивальный", 
+                    value: 15, 
+                    found: false 
+                },
+                { 
+                    lat: userLat - 0.0005, 
+                    lng: userLng - 0.0012, 
+                    name: "Центральный рынок", 
+                    value: 35, 
+                    found: true 
+                },
+                { 
+                    lat: userLat - 0.0015, 
+                    lng: userLng + 0.0002, 
+                    name: "Набережная реки Сож", 
+                    value: 70, 
+                    found: false 
+                }
+            ];
+            
+            geospots.forEach(spot => {
+                let marker = L.marker([spot.lat, spot.lng], {
+                    icon: L.divIcon({
+                        className: `custom-marker ${spot.found ? 'found' : ''}`,
+                        html: `<i class="${spot.found ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32]
+                    })
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <div style="font-weight: bold; margin-bottom: 8px;">${spot.name}</div>
+                    <div>Награда: <b>${spot.value}₽</b></div>
+                    <div>Статус: <b>${spot.found ? 'Найдено' : 'Не найдено'}</b></div>
+                `);
+            });
+        }
+        
+        // Получаем местоположение при загрузке
+        document.addEventListener('DOMContentLoaded', getUserLocation);
         
         // Обработка событий панели
         const panel = document.getElementById('panel');
@@ -684,7 +851,9 @@
         
         // Центрирование карты на пользователе
         document.getElementById('centerMapBtn').addEventListener('click', () => {
-            map.setView([55.7558, 37.6173], 15);
+            if (userMarker) {
+                map.setView(userMarker.getLatLng(), 15);
+            }
         });
         
         // Управление масштабом
@@ -696,6 +865,9 @@
             map.zoomOut();
         });
         
+        // Повторная попытка получения местоположения
+        document.getElementById('retryLocation').addEventListener('click', getUserLocation);
+        
         // Имитация нахождения клада (для демонстрации)
         setTimeout(() => {
             const overlay = document.createElement('div');
@@ -705,7 +877,7 @@
                     <div class="celebration">🎉</div>
                     <h2>Геометка найдена!</h2>
                     <div class="prize-amount">50₽</div>
-                    <p>Вы нашли геометку "Красная площадь"</p>
+                    <p>Вы нашли геометку "Гомельский дворцово-парковый ансамбль"</p>
                     <button style="background: var(--secondary-color); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); margin-top: 16px; font-weight: 600;">
                         Забрать награду
                     </button>
