@@ -130,7 +130,7 @@
         
         .controls {
             position: absolute;
-            bottom: 20px;
+            bottom: 90px; /* Подняли кнопки выше, чтобы не перекрывались шторкой */
             left: 0;
             right: 0;
             display: flex;
@@ -170,15 +170,17 @@
             border-top-left-radius: var(--radius-lg);
             border-top-right-radius: var(--radius-lg);
             padding: 16px;
-            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(calc(100% - 70px));
-            transition: transform 0.3s ease;
-            z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(calc(100% - 50px)); /* Уменьшили видимую часть шторки */
+            transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1); /* Более плавная анимация */
+            z-index: 600; /* Увеличили z-index чтобы была над картой, но под кнопками */
+            max-height: 85vh; /* Ограничиваем максимальную высоту */
         }
         
         .panel.expanded {
             transform: translateY(0);
-            height: 70%;
+            height: auto;
+            overflow-y: auto;
         }
         
         .panel-handle {
@@ -187,6 +189,7 @@
             background: #ddd;
             border-radius: 3px;
             margin: 0 auto 16px;
+            cursor: pointer;
         }
         
         .panel-header {
@@ -265,7 +268,7 @@
         
         .geospots-list {
             overflow-y: auto;
-            max-height: calc(70vh - 150px);
+            max-height: 40vh;
         }
         
         .geospot-item {
@@ -528,6 +531,25 @@
             gap: 6px;
             box-shadow: var(--shadow);
         }
+        
+        /* Затемнение фона при открытой шторке */
+        .panel-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 550;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .panel-backdrop.visible {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
@@ -575,6 +597,9 @@
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
+            
+            <!-- Добавляем затемнение фона -->
+            <div class="panel-backdrop" id="panelBackdrop"></div>
         </div>
         
         <div class="panel" id="panel">
@@ -663,7 +688,7 @@
                         <i class="fas fa-gem"></i>
                     </div>
                     <div class="geospot-info">
-                    <div class="geospot-name">Парк Фестивальный</div>
+                        <div class="geospot-name">Парк Фестивальный</div>
                         <div class="geospot-meta">
                             <span><i class="fas fa-road"></i> 120м</span>
                             <span><i class="fas fa-bolt"></i> Низкая</span>
@@ -716,6 +741,7 @@
         const locationLoader = document.getElementById('locationLoader');
         const locationError = document.getElementById('locationError');
         const trackingStatus = document.getElementById('trackingStatus');
+        const panelBackdrop = document.getElementById('panelBackdrop');
         let currentRadius = 100; // Радиус по умолчанию
         
         // Функция для получения местоположения пользователя
@@ -992,6 +1018,18 @@
         
         panelHandle.addEventListener('click', () => {
             panel.classList.toggle('expanded');
+            panelBackdrop.classList.toggle('visible');
+            
+            // Если панель открыта, центрируем карту на пользователе
+            if (panel.classList.contains('expanded') && userMarker) {
+                map.setView(userMarker.getLatLng(), 16);
+            }
+        });
+        
+        // Закрытие панели по клику на затемнение
+        panelBackdrop.addEventListener('click', () => {
+            panel.classList.remove('expanded');
+            panelBackdrop.classList.remove('visible');
         });
         
         // Центрирование карты на пользователе
@@ -1044,3 +1082,4 @@
     </script>
 </body>
 </html>
+                 
