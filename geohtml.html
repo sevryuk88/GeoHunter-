@@ -130,7 +130,7 @@
         
         .controls {
             position: absolute;
-            bottom: 90px; /* Подняли кнопки выше, чтобы не перекрывались шторкой */
+            bottom: 80px; /* Подняли кнопки выше, чтобы не перекрывались шторкой */
             left: 0;
             right: 0;
             display: flex;
@@ -171,10 +171,10 @@
             border-top-right-radius: var(--radius-lg);
             padding: 16px;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-            transform: translateY(calc(100% - 50px)); /* Уменьшили видимую часть шторки */
+            transform: translateY(calc(100% - 40px)); /* Уменьшили видимую часть шторки */
             transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1); /* Более плавная анимация */
             z-index: 600; /* Увеличили z-index чтобы была над картой, но под кнопками */
-            max-height: 85vh; /* Ограничиваем максимальную высоту */
+            max-height: 95vh; /* Ограничиваем максимальную высоту */
         }
         
         .panel.expanded {
