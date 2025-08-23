@@ -221,6 +221,27 @@
             box-shadow: var(--shadow);
         }
         
+        .radius-selector {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 16px;
+            background: #f1f2f6;
+            padding: 8px;
+            border-radius: var(--radius-md);
+        }
+        
+        .radius-option {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .radius-option.active {
+            background: white;
+            box-shadow: var(--shadow);
+        }
+        
         .filters {
             display: flex;
             gap: 12px;
@@ -324,6 +345,7 @@
             align-items: center;
             justify-content: center;
             box-shadow: var(--shadow);
+            animation: pulse 2s infinite;
         }
         
         .custom-marker i {
@@ -333,6 +355,7 @@
         
         .custom-marker.found {
             background: var(--accent-color);
+            animation: none;
         }
         
         .pulse {
@@ -356,42 +379,6 @@
             100% {
                 transform: scale(0.9);
                 box-shadow: 0 0 0 0 rgba(106, 64, 191, 0);
-            }
-        }
-        
-        .radar-sweep {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-            border: 2px solid rgba(106, 64, 191, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        
-        .radar-sweep::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid rgba(106, 64, 191, 0.2);
-            animation: radar 3s linear infinite;
-        }
-        
-        @keyframes radar {
-            0% {
-                transform: scale(0.5);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1.5);
-                opacity: 0;
             }
         }
         
@@ -577,8 +564,6 @@
                 <span>Отслеживание активно</span>
             </div>
             
-            <div class="radar-sweep"></div>
-            
             <div class="controls">
                 <button class="control-btn" id="zoomOutBtn">
                     <i class="fas fa-minus"></i>
@@ -600,6 +585,12 @@
                     <div class="toggle-option active">Список</div>
                     <div class="toggle-option">Карта</div>
                 </div>
+            </div>
+            
+            <div class="radius-selector">
+                <div class="radius-option active" data-radius="100">100м</div>
+                <div class="radius-option" data-radius="200">200м</div>
+                <div class="radius-option" data-radius="500">500м</div>
             </div>
             
             <div class="stats-bar">
@@ -646,7 +637,7 @@
                     <div class="geospot-info">
                         <div class="geospot-name">Площадь Ленина</div>
                         <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> 150м</span>
+                            <span><i class="fas fa-road"></i> 85м</span>
                             <span><i class="fas fa-bolt"></i> Средняя</span>
                         </div>
                     </div>
@@ -669,12 +660,12 @@
                 
                 <div class="geospot-item">
                     <div class="geospot-icon">
-                      <i class="fas fa-gem"></i>
+                        <i class="fas fa-gem"></i>
                     </div>
                     <div class="geospot-info">
-                        <div class="geospot-name">Парк Фестивальный</div>
+                    <div class="geospot-name">Парк Фестивальный</div>
                         <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> 320м</span>
+                            <span><i class="fas fa-road"></i> 120м</span>
                             <span><i class="fas fa-bolt"></i> Низкая</span>
                         </div>
                     </div>
@@ -702,7 +693,7 @@
                     <div class="geospot-info">
                         <div class="geospot-name">Набережная реки Сож</div>
                         <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> 210м</span>
+                            <span><i class="fas fa-road"></i> 45м</span>
                             <span><i class="fas fa-bolt"></i> Высокая</span>
                         </div>
                     </div>
@@ -721,10 +712,11 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         
-        let userMarker, radiusCircle, watchId;
+        let userMarker, radiusCircle, watchId, gameCenter, geospots = [];
         const locationLoader = document.getElementById('locationLoader');
         const locationError = document.getElementById('locationError');
         const trackingStatus = document.getElementById('trackingStatus');
+        let currentRadius = 100; // Радиус по умолчанию
         
         // Функция для получения местоположения пользователя
         function getUserLocation() {
@@ -737,52 +729,26 @@
                     navigator.geolocation.clearWatch(watchId);
                 }
                 
-                // Запускаем отслеживание местоположения в реальном времени
-                watchId = navigator.geolocation.watchPosition(
+                // Получаем текущее местоположение для установки центра игры
+                navigator.geolocation.getCurrentPosition(
                     position => {
-                        // Успешно получили местоположение
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
                         
-                        // Показываем статус отслеживания
-                        trackingStatus.style.display = 'flex';
+                        // Сохраняем центр игры
+                        gameCenter = [userLat, userLng];
                         
-                        // Центрируем карту на местоположении пользователя (только при первом получении)
-                        if (!userMarker) {
-                            map.setView([userLat, userLng], 15);
-                            
-                            // Добавляем геометки вокруг пользователя
-                            addGeospotsAroundUser(userLat, userLng);
-                        }
+                        // Устанавливаем карту в центр игры
+                        map.setView(gameCenter, 16);
                         
-                        // Добавляем/обновляем маркер пользователя
-                        if (userMarker) {
-                            userMarker.setLatLng([userLat, userLng]);
-                        } else {
-                            userMarker = L.marker([userLat, userLng], {
-                                icon: L.divIcon({
-                                    className: 'user-marker',
-                                    html: '<div class="pulse"></div>',
-                                    iconSize: [24, 24],
-                                    iconAnchor: [12, 12]
-                                })
-                            }).addTo(map);
-                        }
+                        // Создаем круг поиска (неподвижный)
+                        createSearchRadius(gameCenter[0], gameCenter[1]);
                         
-                        // Добавляем/обновляем круг радиуса
-                        if (radiusCircle) {
-                            radiusCircle.setLatLng([userLat, userLng]);
-                        } else {
-                            radiusCircle = L.circle([userLat, userLng], {
-                                color: '#6a40bf',
-                                fillColor: '#6a40bf',
-                                fillOpacity: 0.1,
-                                radius: 100
-                            }).addTo(map);
-                        }
+                        // Генерируем геометки внутри радиуса
+                        generateGeospots(gameCenter[0], gameCenter[1]);
                         
-                        // Проверяем близость к геометкам
-                        checkProximityToGeospots(userLat, userLng);
+                        // Запускаем отслеживание местоположения пользователя
+                        startTrackingUser();
                         
                         // Скрываем индикатор загрузки
                         locationLoader.style.display = 'none';
@@ -792,13 +758,11 @@
                         console.error('Ошибка получения геолокации:', error);
                         locationLoader.style.display = 'none';
                         locationError.style.display = 'flex';
-                        trackingStatus.style.display = 'none';
                     },
                     {
                         enableHighAccuracy: true,
                         timeout: 10000,
-                        maximumAge: 0, // Всегда получать свежее местоположение
-                        distanceFilter: 5 // Обновлять при перемещении на 5 метров
+                        maximumAge: 0
                     }
                 );
             } else {
@@ -809,77 +773,214 @@
             }
         }
         
-        // Функция для проверки близости к геометкам
-        function checkProximityToGeospots(userLat, userLng) {
-            // В реальном приложении здесь будет код проверки расстояния до геометок
-            // и отображения уведомлений при приближении
-            console.log("Проверка близости к геометкам...");
+        // Функция для создания круга поиска
+        function createSearchRadius(lat, lng) {
+            // Удаляем предыдущий круг, если он есть
+            if (radiusCircle) {
+                map.removeLayer(radiusCircle);
+            }
+            
+            // Создаем новый круг с выбранным радиусом
+            radiusCircle = L.circle([lat, lng], {
+                color: '#6a40bf',
+                fillColor: '#6a40bf',
+                fillOpacity: 0.1,
+                radius: currentRadius
+            }).addTo(map);
         }
         
-        // Функция для добавления геометок вокруг пользователя
-        function addGeospotsAroundUser(userLat, userLng) {
+        // Функция для генерации геометок внутри радиуса
+        function generateGeospots(centerLat, centerLng) {
             // Удаляем существующие геометки, если есть
-            map.eachLayer(layer => {
-                if (layer instanceof L.Marker && layer !== userMarker) {
-                    map.removeLayer(layer);
-                }
-            });
-            
-            // Добавляем новые геометки вокруг пользователя
-            const geospots = [
-                { 
-                    lat: userLat + 0.001, 
-                    lng: userLng + 0.001, 
-                    name: "Площадь Ленина", 
-                    value: 30, 
-                    found: false 
-                },
-                { 
-                    lat: userLat - 0.0008, 
-                    lng: userLng + 0.0005, 
-                    name: "Гомельский дворцово-парковый ансамбль", 
-                    value: 50, 
-                    found: true 
-                },
-                { 
-                    lat: userLat + 0.0012, 
-                    lng: userLng - 0.001, 
-                    name: "Парк Фестивальный", 
-                    value: 15, 
-                    found: false 
-                },
-                { 
-                    lat: userLat - 0.0005, 
-                    lng: userLng - 0.0012, 
-                    name: "Центральный рынок", 
-                    value: 35, 
-                    found: true 
-                },
-                { 
-                    lat: userLat - 0.0015, 
-                    lng: userLng + 0.0002, 
-                    name: "Набережная реки Сож", 
-                    value: 70, 
-                    found: false 
-                }
-            ];
-            
             geospots.forEach(spot => {
-                let marker = L.marker([spot.lat, spot.lng], {
+                map.removeLayer(spot.marker);
+            });
+            geospots = [];
+            
+            // Генерируем 5 случайных геометок внутри радиуса
+            for (let i = 0; i < 5; i++) {
+                // Генерируем случайное расстояние и угол
+                const distance = Math.random() * currentRadius;
+                const angle = Math.random() * 2 * Math.PI;
+                
+                // Конвертируем расстояние в градусы (примерно: 1° ≈ 111 км)
+                const deltaLat = (distance * Math.cos(angle)) / 111000;
+                const deltaLng = (distance * Math.sin(angle)) / (111000 * Math.cos(centerLat * Math.PI / 180));
+                
+                const spotLat = centerLat + deltaLat;
+                const spotLng = centerLng + deltaLng;
+                
+                // Случайно определяем, есть ли приз
+                const hasPrize = Math.random() > 0.4;
+                const prizeAmount = hasPrize ? [15, 30, 50, 70, 100][Math.floor(Math.random() * 5)] : 0;
+                
+                // Создаем метку геометки
+                const marker = L.marker([spotLat, spotLng], {
                     icon: L.divIcon({
-                        className: `custom-marker ${spot.found ? 'found' : ''}`,
-                        html: `<i class="${spot.found ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
+                        className: `custom-marker ${!hasPrize ? 'found' : ''}`,
+                        html: `<i class="${!hasPrize ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
                         iconSize: [32, 32],
                         iconAnchor: [16, 32]
                     })
                 }).addTo(map);
                 
+                // Добавляем попап с информацией
                 marker.bindPopup(`
-                    <div style="font-weight: bold; margin-bottom: 8px;">${spot.name}</div>
-                    <div>Награда: <b>${spot.value}₽</b></div>
-                    <div>Статус: <b>${spot.found ? 'Найдено' : 'Не найдено'}</b></div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Геометка #${i+1}</div>
+                    <div>Награда: <b>${hasPrize ? prizeAmount + '₽' : 'Отсутствует'}</b></div>
+                    <div>Статус: <b>${!hasPrize ? 'Найдено' : 'Не найдено'}</b></div>
                 `);
+                
+                // Сохраняем информацию о геометке
+                geospots.push({
+                    marker: marker,
+                    lat: spotLat,
+                    lng: spotLng,
+                    hasPrize: hasPrize,
+                    prizeAmount: prizeAmount,
+                    found: !hasPrize
+                });
+            }
+        }
+        
+        // Функция для запуска отслеживания пользователя
+        function startTrackingUser() {
+            // Запускаем отслеживание местоположения в реальном времени
+            watchId = navigator.geolocation.watchPosition(
+                position => {
+                    // Успешно получили местоположение
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    // Показываем статус отслеживания
+                    trackingStatus.style.display = 'flex';
+                    
+                    // Добавляем/обновляем маркер пользователя
+                    if (userMarker) {
+                        userMarker.setLatLng([userLat, userLng]);
+                    } else {
+                        userMarker = L.marker([userLat, userLng], {
+                            icon: L.divIcon({
+                                className: 'user-marker',
+                                html: '<div class="pulse"></div>',
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                            })
+                        }).addTo(map);
+                    }
+                    
+                    // Проверяем близость к геометкам
+                    checkProximityToGeospots(userLat, userLng);
+                },
+                error => {
+                    // Ошибка получения местоположения
+                    console.error('Ошибка получения геолокации:', error);
+                    trackingStatus.style.display = 'none';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0,
+                    distanceFilter: 5 // Обновлять при перемещении на 5 метров
+                }
+            );
+        }
+        
+        // Функция для проверки близости к геометкам
+        function checkProximityToGeospots(userLat, userLng) {
+            // В реальном приложении здесь будет код проверки расстояния до геометок
+            // и отображения уведомлений при приближении
+            geospots.forEach((spot, index) => {
+                if (!spot.found) {
+                    // Вычисляем расстояние до геометки
+                    const distance = calculateDistance(userLat, userLng, spot.lat, spot.lng);
+                    
+                    // Если пользователь близко к геометке
+                    if (distance < 20) { // 20 метров - расстояние для "нахождения" геометки
+                        // Помечаем геометку как найденную
+                        spot.found = true;
+                        
+                        // Обновляем иконку геометки
+                        spot.marker.setIcon(L.divIcon({
+                            className: 'custom-marker found',
+                            html: '<i class="fas fa-check"></i>',
+                            iconSize: [32, 32],
+                            iconAnchor: [16, 32]
+                        }));
+                        
+                        // Показываем уведомление о найденной геометке
+                        if (spot.hasPrize) {
+                            showTreasureFoundNotification(spot.prizeAmount, index);
+                        } else {
+                            showEmptyGeospotNotification();
+                        }
+                    }
+                }
             });
+        }
+        
+        // Функция для вычисления расстояния между двумя точками
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371000; // Радиус Земли в метрах
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        // Функция для показа уведомления о найденном кладе
+        function showTreasureFoundNotification(prize, geospotIndex) {
+            const overlay = document.createElement('div');
+            overlay.className = 'treasure-found-overlay';
+            overlay.innerHTML = `
+                <div class="treasure-content">
+                    <div class="celebration">🎉</div>
+                    <h2>Геометка найдена!</h2>
+                    <div class="prize-amount">${prize}₽</div>
+                    <p>Вы нашли геометку #${geospotIndex + 1}</p>
+                    <button style="background: var(--secondary-color); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); margin-top: 16px; font-weight: 600;">
+                        Забрать награду
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Удаляем оверлей через 5 секунд
+            setTimeout(() => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+            }, 5000);
+        }
+        
+        // Функция для показа уведомления о пустой геометке
+        function showEmptyGeospotNotification() {
+            const overlay = document.createElement('div');
+            overlay.className = 'treasure-found-overlay';
+            overlay.innerHTML = `
+                <div class="treasure-content">
+                    <div class="celebration">🔍</div>
+                    <h2>Геометка пустая</h2>
+                    <p>К сожалению, эта геометка не содержит приза</p>
+                    <button style="background: var(--secondary-color); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); margin-top: 16px; font-weight: 600;">
+                        Продолжить поиск
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Удаляем оверлей через 5 секунд
+            setTimeout(() => {
+                if (document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+            }, 5000);
         }
         
         // Получаем местоположение при загрузке
@@ -896,7 +997,9 @@
         // Центрирование карты на пользователе
         document.getElementById('centerMapBtn').addEventListener('click', () => {
             if (userMarker) {
-                map.setView(userMarker.getLatLng(), 15);
+                map.setView(userMarker.getLatLng(), 16);
+            } else if (gameCenter) {
+                map.setView(gameCenter, 16);
             }
         });
         
@@ -912,29 +1015,20 @@
         // Повторная попытка получения местоположения
         document.getElementById('retryLocation').addEventListener('click', getUserLocation);
         
-        // Имитация нахождения клада (для демонстрации)
-        setTimeout(() => {
-            const overlay = document.createElement('div');
-            overlay.className = 'treasure-found-overlay';
-            overlay.innerHTML = `
-                <div class="treasure-content">
-                    <div class="celebration">🎉</div>
-                    <h2>Геометка найдена!</h2>
-                    <div class="prize-amount">50₽</div>
-                    <p>Вы нашли геометку "Гомельский дворцово-парковый ансамбль"</p>
-                    <button style="background: var(--secondary-color); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); margin-top: 16px; font-weight: 600;">
-                        Забрать награду
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(overlay);
-            
-            // Удаляем оверлей через 5 секунд
-            setTimeout(() => {
-                document.body.removeChild(overlay);
-            }, 5000);
-        }, 3000);
+        // Обработка выбора радиуса
+        document.querySelectorAll('.radius-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.radius-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                
+                currentRadius = parseInt(option.dataset.radius);
+                
+                if (gameCenter) {
+                    createSearchRadius(gameCenter[0], gameCenter[1]);
+                    generateGeospots(gameCenter[0], gameCenter[1]);
+                }
+            });
+        });
         
         // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
