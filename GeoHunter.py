@@ -2,6 +2,7 @@ import os
 import random
 import math
 import logging
+import urllib.parse
 import json  # Добавьте этот импорт, если его нет
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
@@ -701,6 +702,8 @@ async def stop_live_location(update: Update, context: CallbackContext) -> None:
     
     await query.edit_message_text(response, reply_markup=get_game_keyboard())
 
+
+
 async def handle_location(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
     message = update.effective_message
@@ -730,7 +733,26 @@ async def handle_location(update: Update, context: CallbackContext) -> None:
         action = "обновлена"
         game.last_update = datetime.now()
     
-    # Формирование ссылки на карту
+    # Формируем данные для передачи в Web App
+    geospots_data = []
+    for i, spot in enumerate(game.geospots):
+        geospots_data.append({
+            'id': i,
+            'lat': spot['coords'][0],
+            'lon': spot['coords'][1],
+            'has_prize': spot['has_prize'],
+            'prize_amount': spot['prize_amount'],
+            'found': spot['found']
+        })
+    
+    # Кодируем данные в JSON и URL-формат
+    geospots_json = json.dumps(geospots_data)
+    geospots_encoded = urllib.parse.quote(geospots_json)
+    
+    # Формируем URL для Web App
+    web_app_url = f"https://sevryuk88.github.io/GeoHunter-/geohtml.html?center_lat={location.latitude}&center_lon={location.longitude}&radius={SEARCH_RADIUS}&geospots={geospots_encoded}&mode={selected_mode}"
+    
+    # Формируем ссылку на статическую карту с метками
     yandex_map_url = (
         f"https://static-maps.yandex.ru/1.x/?ll={location.longitude},{location.latitude}"
         f"&size=650,450"
@@ -751,20 +773,30 @@ async def handle_location(update: Update, context: CallbackContext) -> None:
         f"В радиусе {SEARCH_RADIUS} м от тебя спрятаны {len(game.geospots)} геометок.\n"
         f"Из них {sum(1 for s in game.geospots if s['has_prize'])} содержат призы!\n\n"
         f"<a href='{yandex_map_url}'>🗺️ Посмотреть карту с метками</a>\n\n"
-        "Начинай поиск! Я буду сообщать, когда ты приблизишься к метке."
+        "Нажми кнопку ниже, чтобы открыть интерактивную карту и начать поиск!"
     )
+    
+    # Создаем клавиатуру с Web App кнопкой
+    keyboard = [
+        [InlineKeyboardButton("🌎 Открыть интерактивную карту", web_app=WebAppInfo(url=web_app_url))],
+        [InlineKeyboardButton("📍 Включить трансляцию", callback_data='start_live_location')],
+        [InlineKeyboardButton("📊 Моя статистика", callback_data='user_stats')],
+        [InlineKeyboardButton("❌ Завершить игру", callback_data='cancel_game')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=response_text,
         parse_mode='HTML',
-        reply_markup=get_game_keyboard()
+        reply_markup=reply_markup
     )
     
     # Если включена трансляция, сразу проверяем позицию
     if game.live_location_active:
         logger.info("Checking proximity immediately after location update")
         await check_proximity_and_respond(update, context, user_coords, game)
+        
 
 async def handle_live_location(update: Update, context: CallbackContext) -> None:
     user = update.effective_user

@@ -130,7 +130,7 @@
         
         .controls {
             position: absolute;
-            bottom: 80px; /* Подняли кнопки выше, чтобы не перекрывались шторкой */
+            bottom: 90px;
             left: 0;
             right: 0;
             display: flex;
@@ -171,10 +171,10 @@
             border-top-right-radius: var(--radius-lg);
             padding: 16px;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-            transform: translateY(calc(100% - 30px)); /* Уменьшили видимую часть шторки */
-            transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1); /* Более плавная анимация */
-            z-index: 600; /* Увеличили z-index чтобы была над картой, но под кнопками */
-            max-height: 95vh; /* Ограничиваем максимальную высоту */
+            transform: translateY(calc(100% - 50px));
+            transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1);
+            z-index: 600;
+            max-height: 85vh;
         }
         
         .panel.expanded {
@@ -532,7 +532,6 @@
             box-shadow: var(--shadow);
         }
         
-        /* Затемнение фона при открытой шторке */
         .panel-backdrop {
             position: absolute;
             top: 0;
@@ -598,7 +597,6 @@
                 </button>
             </div>
             
-            <!-- Добавляем затемнение фона -->
             <div class="panel-backdrop" id="panelBackdrop"></div>
         </div>
         
@@ -655,82 +653,39 @@
             </div>
             
             <div class="geospots-list">
-                <div class="geospot-item">
-                    <div class="geospot-icon">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                    <div class="geospot-info">
-                        <div class="geospot-name">Площадь Ленина</div>
-                        <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> 85м</span>
-                            <span><i class="fas fa-bolt"></i> Средняя</span>
-                        </div>
-                    </div>
-                    <div class="geospot-value">30₽</div>
-                </div>
-                
-                <div class="geospot-item">
-                    <div class="geospot-icon found">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <div class="geospot-info">
-                        <div class="geospot-name">Гомельский дворцово-парковый ансамбль</div>
-                        <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> Найдено</span>
-                            <span><i class="fas fa-bolt"></i> Высокая</span>
-                        </div>
-                    </div>
-                    <div class="geospot-value">50₽</div>
-                </div>
-                
-                <div class="geospot-item">
-                    <div class="geospot-icon">
-                        <i class="fas fa-gem"></i>
-                    </div>
-                    <div class="geospot-info">
-                        <div class="geospot-name">Парк Фестивальный</div>
-                        <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> 120м</span>
-                            <span><i class="fas fa-bolt"></i> Низкая</span>
-                        </div>
-                    </div>
-                    <div class="geospot-value">15₽</div>
-                </div>
-                
-                <div class="geospot-item">
-                    <div class="geospot-icon found">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <div class="geospot-info">
-                        <div class="geospot-name">Центральный рынок</div>
-                        <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> Найдено</span>
-                            <span><i class="fas fa-bolt"></i> Средняя</span>
-                        </div>
-                    </div>
-                    <div class="geospot-value">35₽</div>
-                </div>
-                
-                <div class="geospot-item">
-                    <div class="geospot-icon">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                    <div class="geospot-info">
-                        <div class="geospot-name">Набережная реки Сож</div>
-                        <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> 45м</span>
-                            <span><i class="fas fa-bolt"></i> Высокая</span>
-                        </div>
-                    </div>
-                    <div class="geospot-value">70₽</div>
-                </div>
+                <!-- Список геометок будет заполнен динамически -->
             </div>
         </div>
     </div>
 
+    
     <script>
-        // Инициализация карты с центром на Гомеле (координаты по умолчанию)
-        let map = L.map('map').setView([52.4345, 30.9754], 15);
+        // Функция для получения параметров из URL
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const centerLat = parseFloat(urlParams.get('center_lat'));
+            const centerLon = parseFloat(urlParams.get('center_lon'));
+            const radius = parseInt(urlParams.get('radius')) || 100;
+            const geospotsEncoded = urlParams.get('geospots');
+            const mode = urlParams.get('mode') || 'standard';
+            
+            let geospots = [];
+            if (geospotsEncoded) {
+                try {
+                    geospots = JSON.parse(decodeURIComponent(geospotsEncoded));
+                } catch (e) {
+                    console.error('Error parsing geospots data:', e);
+                }
+            }
+            
+            return { centerLat, centerLon, radius, geospots, mode };
+        }
+        
+        // Получаем параметры из URL
+        const { centerLat, centerLon, radius, geospots: geospotsData, mode } = getUrlParams();
+        
+        // Инициализация карты с центром из параметров
+        let map = L.map('map').setView([centerLat || 52.4345, centerLon || 30.9754], 15);
         
         // Добавление слоя карты (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -742,7 +697,7 @@
         const locationError = document.getElementById('locationError');
         const trackingStatus = document.getElementById('trackingStatus');
         const panelBackdrop = document.getElementById('panelBackdrop');
-        let currentRadius = 100; // Радиус по умолчанию
+        let currentRadius = radius; // Используем радиус из параметров
         
         // Функция для получения местоположения пользователя
         function getUserLocation() {
@@ -761,8 +716,8 @@
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
                         
-                        // Сохраняем центр игры
-                        gameCenter = [userLat, userLng];
+                        // Сохраняем центр игры (используем переданный центр, а не текущее положение)
+                        gameCenter = [centerLat || userLat, centerLon || userLng];
                         
                         // Устанавливаем карту в центр игры
                         map.setView(gameCenter, 16);
@@ -770,8 +725,8 @@
                         // Создаем круг поиска (неподвижный)
                         createSearchRadius(gameCenter[0], gameCenter[1]);
                         
-                        // Генерируем геометки внутри радиуса
-                        generateGeospots(gameCenter[0], gameCenter[1]);
+                        // Создаем геометки из переданных данных
+                        createGeospotsFromData();
                         
                         // Запускаем отслеживание местоположения пользователя
                         startTrackingUser();
@@ -815,36 +770,21 @@
             }).addTo(map);
         }
         
-        // Функция для генерации геометок внутри радиуса
-        function generateGeospots(centerLat, centerLng) {
+        // Функция для создания геометок из переданных данных
+        function createGeospotsFromData() {
             // Удаляем существующие геометки, если есть
             geospots.forEach(spot => {
                 map.removeLayer(spot.marker);
             });
             geospots = [];
             
-            // Генерируем 5 случайных геометок внутри радиуса
-            for (let i = 0; i < 5; i++) {
-                // Генерируем случайное расстояние и угол
-                const distance = Math.random() * currentRadius;
-                const angle = Math.random() * 2 * Math.PI;
-                
-                // Конвертируем расстояние в градусы (примерно: 1° ≈ 111 км)
-                const deltaLat = (distance * Math.cos(angle)) / 111000;
-                const deltaLng = (distance * Math.sin(angle)) / (111000 * Math.cos(centerLat * Math.PI / 180));
-                
-                const spotLat = centerLat + deltaLat;
-                const spotLng = centerLng + deltaLng;
-                
-                // Случайно определяем, есть ли приз
-                const hasPrize = Math.random() > 0.4;
-                const prizeAmount = hasPrize ? [15, 30, 50, 70, 100][Math.floor(Math.random() * 5)] : 0;
-                
+            // Создаем геометки из переданных данных
+            geospotsData.forEach((spotData, index) => {
                 // Создаем метку геометки
-                const marker = L.marker([spotLat, spotLng], {
+                const marker = L.marker([spotData.lat, spotData.lon], {
                     icon: L.divIcon({
-                        className: `custom-marker ${!hasPrize ? 'found' : ''}`,
-                        html: `<i class="${!hasPrize ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
+                        className: `custom-marker ${spotData.found ? 'found' : ''}`,
+                        html: `<i class="${spotData.found ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
                         iconSize: [32, 32],
                         iconAnchor: [16, 32]
                     })
@@ -852,21 +792,56 @@
                 
                 // Добавляем попап с информацией
                 marker.bindPopup(`
-                    <div style="font-weight: bold; margin-bottom: 8px;">Геометка #${i+1}</div>
-                    <div>Награда: <b>${hasPrize ? prizeAmount + '₽' : 'Отсутствует'}</b></div>
-                    <div>Статус: <b>${!hasPrize ? 'Найдено' : 'Не найдено'}</b></div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Геометка #${index+1}</div>
+                    <div>Награда: <b>${spotData.has_prize ? spotData.prize_amount + '₽' : 'Отсутствует'}</b></div>
+                    <div>Статус: <b>${spotData.found ? 'Найдено' : 'Не найдено'}</b></div>
                 `);
                 
                 // Сохраняем информацию о геометке
                 geospots.push({
                     marker: marker,
-                    lat: spotLat,
-                    lng: spotLng,
-                    hasPrize: hasPrize,
-                    prizeAmount: prizeAmount,
-                    found: !hasPrize
+                    lat: spotData.lat,
+                    lng: spotData.lon,
+                    has_prize: spotData.has_prize,
+                    prize_amount: spotData.prize_amount,
+                    found: spotData.found || false
                 });
-            }
+            });
+            
+            // Обновляем список геометок в панели
+            updateGeospotsList();
+        }
+        
+        // Функция для обновления списка геометок в панели
+        function updateGeospotsList() {
+            const geospotsList = document.querySelector('.geospots-list');
+            if (!geospotsList) return;
+            
+            geospotsList.innerHTML = '';
+            
+            geospots.forEach((spot, index) => {
+                const distance = gameCenter ? 
+                    calculateDistance(gameCenter[0], gameCenter[1], spot.lat, spot.lng).toFixed(0) : 
+                    '?';
+                
+                const geospotItem = document.createElement('div');
+                geospotItem.className = 'geospot-item';
+                geospotItem.innerHTML = `
+                    <div class="geospot-icon ${spot.found ? 'found' : ''}">
+                        <i class="${spot.found ? 'fas fa-check' : 'fas fa-coins'}"></i>
+                    </div>
+                    <div class="geospot-info">
+                        <div class="geospot-name">Геометка #${index+1}</div>
+                        <div class="geospot-meta">
+                            <span><i class="fas fa-road"></i> ${distance}м</span>
+                            <span><i class="fas fa-bolt"></i> ${spot.has_prize ? 'Высокая' : 'Низкая'}</span>
+                        </div>
+                    </div>
+                    <div class="geospot-value">${spot.has_prize ? spot.prize_amount + '₽' : 'Нет'}</div>
+                `;
+                
+                geospotsList.appendChild(geospotItem);
+            });
         }
         
         // Функция для запуска отслеживания пользователя
@@ -914,8 +889,6 @@
         
         // Функция для проверки близости к геометкам
         function checkProximityToGeospots(userLat, userLng) {
-            // В реальном приложении здесь будет код проверки расстояния до геометок
-            // и отображения уведомлений при приближении
             geospots.forEach((spot, index) => {
                 if (!spot.found) {
                     // Вычисляем расстояние до геометки
@@ -935,11 +908,14 @@
                         }));
                         
                         // Показываем уведомление о найденной геометке
-                        if (spot.hasPrize) {
-                            showTreasureFoundNotification(spot.prizeAmount, index);
+                        if (spot.has_prize) {
+                            showTreasureFoundNotification(spot.prize_amount, index);
                         } else {
                             showEmptyGeospotNotification();
                         }
+                        
+                        // Обновляем список геометок в панели
+                        updateGeospotsList();
                     }
                 }
             });
@@ -1063,7 +1039,6 @@
                 
                 if (gameCenter) {
                     createSearchRadius(gameCenter[0], gameCenter[1]);
-                    generateGeospots(gameCenter[0], gameCenter[1]);
                 }
             });
         });
@@ -1082,4 +1057,3 @@
     </script>
 </body>
 </html>
-                 
