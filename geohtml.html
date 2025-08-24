@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GeoHunter</title>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=752def06-b6ee-4762-a047-ccb35a7c4e6f&lang=ru_RU"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ВАШ_API_КЛЮЧ&lang=ru_RU"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -31,18 +31,19 @@
 
         .bottom-sheet {
             position: fixed;
-            bottom: 0;
+            bottom: -80%; /* Начинается за пределами экрана */
             left: 0;
             right: 0;
+            height: 80%;
             background: white;
             border-radius: 24px 24px 0 0;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
             z-index: 10;
-            transition: transform 0.3s ease;
+            transition: bottom 0.3s ease;
         }
 
-        .bottom-sheet.collapsed {
-            transform: translateY(calc(100% - 80px));
+        .bottom-sheet.visible {
+            bottom: 0; /* Показываем шторку */
         }
 
         .sheet-handle {
@@ -56,7 +57,7 @@
 
         .sheet-content {
             padding: 0 20px 20px;
-            max-height: 70vh;
+            height: calc(100% - 40px);
             overflow-y: auto;
         }
 
@@ -242,16 +243,93 @@
     </div>
 
     <script>
-        // Инициализация Telegram Web App
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
-        
+        // Base64 иконки
+        const icons = {
+            user: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiI+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSI0Ii8+PHBhdGggZD0iTTIwIDIwaC0xNmMtMS42NSAwLTMtMS4zNS0zLTNzMS4zNS0zIDMtM2gxNmMxLjY1IDAgMyAxLjM1IDMgM3MtMS4zNSAzLTMgM3oiLz48L3N2Zz4=',
+            money: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48cGF0aCBkPSJNMTIgNnYxMk05IDloNk0xNSA5aC02Ii8+PC9zdmc+',
+            empty: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48cGF0aCBkPSJNMTggNkw2IDE4Ii8+PC9zdmc+',
+            found: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48cGF0aCBkPSJNOCAxMmwzIDNMNyAxNiIgc3Ryb2tlPSIjMDBjYzAwIi8+PC9zdmc+'
+        };
+
+        // Безопасная инициализация Telegram WebApp
+        let tg = null;
+        let user_id = null;
+
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                tg.expand();
+                
+                // Проверяем поддержку функции
+                if (tg.enableClosingConfirmation) {
+                    tg.enableClosingConfirmation();
+                }
+                
+                user_id = tg.initDataUnsafe?.user?.id;
+            }
+        } catch (e) {
+            console.warn('Telegram WebApp not available:', e);
+        }
+
+        // Если не в Telegram, используем параметры URL для тестирования
+        if (!user_id) {
+            const urlParams = new URLSearchParams(window.location.search);
+            user_id = urlParams.get('user_id') || 'test_user_' + Math.random().toString(36).substring(2, 9);
+            
+            // Создаем заглушку для tg
+            tg = {
+                close: function() {
+                    alert('В реальном Telegram приложении здесь закрылось бы окно');
+                },
+                showConfirm: function(message, callback) {
+                    if (confirm(message)) {
+                        callback(true);
+                    } else {
+                        callback(false);
+                    }
+                }
+            };
+        }
+
         let map, userPlacemark, circle, spots = [];
         let gameData = null;
         let startTime = null;
         let lastPosition = null;
         let totalDistance = 0;
+        
+        // Управление шторкой
+        function initBottomSheet() {
+            const sheet = document.querySelector('.bottom-sheet');
+            const handle = document.querySelector('.sheet-handle');
+            
+            // Показываем шторку с анимацией при загрузке
+            setTimeout(() => {
+                sheet.classList.add('visible');
+            }, 300);
+            
+            // Обработчик для закрытия/открытия по клику на ручку
+            handle.addEventListener('click', function() {
+                sheet.classList.toggle('visible');
+            });
+            
+            // Свайп-жесты для мобильных устройств
+            let startY = 0;
+            let currentY = 0;
+            
+            sheet.addEventListener('touchstart', function(e) {
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+            
+            sheet.addEventListener('touchmove', function(e) {
+                currentY = e.touches[0].clientY;
+                const diff = startY - currentY;
+                
+                if (diff < 0) {
+                    // Свайп вниз - закрываем шторку
+                    sheet.classList.remove('visible');
+                }
+            }, { passive: true });
+        }
         
         // Инициализация карты
         ymaps.ready(initMap);
@@ -263,10 +341,7 @@
                 controls: ['zoomControl']
             });
             
-            // Запрос данных игры
-            fetchGameData();
-            
-            // Обработчики жестов для нижней шторки
+            // Инициализируем шторку
             initBottomSheet();
             
             // Обработчики кнопок
@@ -276,12 +351,15 @@
             // Запускаем таймер
             startTime = new Date();
             setInterval(updateTimer, 1000);
+            
+            // Запрос данных игры
+            fetchGameData();
         }
         
         async function fetchGameData() {
             try {
                 // Получаем данные игры с бэкенда
-                const response = await fetch(`/api/game/${tg.initDataUnsafe.user.id}`);
+                const response = await fetch(`/api/game/${user_id}`);
                 gameData = await response.json();
                 
                 // Устанавливаем центр карты
@@ -304,7 +382,7 @@
                 gameData.geospots.forEach((spot, index) => {
                     const placemark = new ymaps.Placemark(spot.coords, {}, {
                         iconLayout: 'default#image',
-                        iconImageHref: spot.has_prize ? 'money.png' : 'empty.png',
+                        iconImageHref: spot.has_prize ? icons.money : icons.empty,
                         iconImageSize: [24, 24],
                         iconImageOffset: [-12, -12],
                         zIndex: spot.found ? 100 : 10
@@ -315,7 +393,7 @@
                     
                     // Если метка найдена, отмечаем это
                     if (spot.found) {
-                        placemark.options.set('iconImageHref', 'found.png');
+                        placemark.options.set('iconImageHref', icons.found);
                     }
                 });
                 
@@ -326,36 +404,6 @@
                 console.error('Ошибка загрузки данных:', error);
                 showToast('Ошибка загрузки данных игры');
             }
-        }
-        
-        function initBottomSheet() {
-            const sheet = document.querySelector('.bottom-sheet');
-            const handle = document.querySelector('.sheet-handle');
-            let startY, startHeight;
-            
-            handle.addEventListener('touchstart', function(e) {
-                startY = e.touches[0].clientY;
-                startHeight = parseInt(document.body.style.height);
-                document.body.style.transition = 'none';
-            });
-            
-            handle.addEventListener('touchmove', function(e) {
-                const delta = startY - e.touches[0].clientY;
-                const newHeight = Math.min(Math.max(300, startHeight + delta), window.innerHeight - 100);
-                document.body.style.height = `${newHeight}px`;
-            });
-            
-            handle.addEventListener('touchend', function() {
-                document.body.style.transition = 'height 0.3s ease';
-                const height = parseInt(document.body.style.height);
-                if (height < window.innerHeight * 0.5) {
-                    document.body.style.height = '300px';
-                    sheet.classList.add('collapsed');
-                } else {
-                    document.body.style.height = '70vh';
-                    sheet.classList.remove('collapsed');
-                }
-            });
         }
         
         async function updateLocation() {
@@ -375,7 +423,7 @@
                 if (!userPlacemark) {
                     userPlacemark = new ymaps.Placemark(coords, {}, {
                         iconLayout: 'default#image',
-                        iconImageHref: 'user.png',
+                        iconImageHref: icons.user,
                         iconImageSize: [32, 32],
                         iconImageOffset: [-16, -16],
                         zIndex: 1000
@@ -416,7 +464,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        user_id: tg.initDataUnsafe.user.id,
+                        user_id: user_id,
                         coords: coords
                     })
                 });
@@ -425,7 +473,7 @@
                 
                 if (result.found) {
                     // Обновляем метку на карте
-                    spots[result.spot_index].options.set('iconImageHref', 'found.png');
+                    spots[result.spot_index].options.set('iconImageHref', icons.found);
                     
                     // Показываем уведомление о выигрыше
                     showToast(result.prize > 0 ? 
@@ -512,7 +560,7 @@
         }
         
         // Подключаемся к WebSocket для real-time обновлений
-        const ws = new WebSocket(`wss://your-domain.com/ws/${tg.initDataUnsafe.user.id}`);
+        const ws = new WebSocket(`wss://your-domain.com/ws/${user_id}`);
         
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
@@ -521,7 +569,7 @@
                 case 'spot_found':
                     // Обновляем конкретную метку
                     if (spots[data.spot_index]) {
-                        spots[data.spot_index].options.set('iconImageHref', 'found.png');
+                        spots[data.spot_index].options.set('iconImageHref', icons.found);
                     }
                     showToast(data.prize > 0 ? 
                         `🎉 Найден приз: ${data.prize} ₽!` : 
