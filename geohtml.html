@@ -266,6 +266,35 @@
             color: white;
         }
         
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #5a30af;
+        }
+        
+        .action-btn i {
+            font-size: 16px;
+        }
+        
         .geospots-list {
             overflow-y: auto;
             max-height: 40vh;
@@ -652,13 +681,714 @@
                 <div class="filter-pill">Дорогие</div>
             </div>
             
+            <div class="action-buttons">
+                <button class="action-btn" id="startLiveLocation">
+                    <i class="fas fa-satellite"></i>
+                    <span>Включить трансляцию</span>
+                    <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GeoHunter - Охота за сокровищами</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6a40bf;
+            --secondary-color: #ff9f43;
+            --accent-color: #36bd78;
+            --dark-color: #2d3436;
+            --light-color: #f5f6fa;
+            --danger-color: #e84118;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            position: relative;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .header-actions {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .header-action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        .location-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .loader-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--light-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 90px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 16px;
+            z-index: 500;
+        }
+        
+        .control-btn {
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            color: var(--primary-color);
+            font-size: 20px;
+        }
+        
+        .main-action {
+            background: var(--secondary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+        }
+        
+        .panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(calc(100% - 50px));
+            transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1);
+            z-index: 600;
+            max-height: 85vh;
+        }
+        
+        .panel.expanded {
+            transform: translateY(0);
+            height: auto;
+            overflow-y: auto;
+        }
+        
+        .panel-handle {
+            width: 40px;
+            height: 5px;
+            background: #ddd;
+            border-radius: 3px;
+            margin: 0 auto 16px;
+            cursor: pointer;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .panel-title {
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .view-toggle {
+            display: flex;
+            background: #f1f2f6;
+            border-radius: var(--radius-md);
+            padding: 4px;
+        }
+        
+        .toggle-option {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .toggle-option.active {
+            background: white;
+            box-shadow: var(--shadow);
+        }
+        
+        .radius-selector {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 16px;
+            background: #f1f2f6;
+            padding: 8px;
+            border-radius: var(--radius-md);
+        }
+        
+        .radius-option {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .radius-option.active {
+            background: white;
+            box-shadow: var(--shadow);
+        }
+        
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .filter-pill {
+            background: #f1f2f6;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .filter-pill.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: #5a30af;
+        }
+        
+        .action-btn i {
+            font-size: 16px;
+        }
+        
+        .geospots-list {
+            overflow-y: auto;
+            max-height: 40vh;
+        }
+        
+        .geospot-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .geospot-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .geospot-info {
+            flex: 1;
+        }
+        
+        .geospot-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .geospot-meta {
+            display: flex;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .geospot-meta span {
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .geospot-meta i {
+            margin-right: 4px;
+        }
+        
+        .geospot-value {
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+        
+        .distance-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .user-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: 3px solid white;
+            box-shadow: var(--shadow);
+        }
+        
+        .custom-marker {
+            width: 32px;
+            height: 32px;
+            border-radius: 50% 50% 50% 0;
+            background: var(--secondary-color);
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            animation: pulse 2s infinite;
+        }
+        
+        .custom-marker i {
+            transform: rotate(45deg);
+            color: white;
+        }
+        
+        .custom-marker.found {
+            background: var(--accent-color);
+            animation: none;
+        }
+        
+        .pulse {
+            display: block;
+            border-radius: 50%;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(106, 64, 191, 0.7);
+            }
+            
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(106, 64, 191, 0);
+            }
+            
+            100% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(106, 64, 191, 0);
+            }
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stat-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .progress-container {
+            background: #f1f2f6;
+            border-radius: 20px;
+            height: 8px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            border-radius: 20px;
+            width: 65%;
+        }
+        
+        .game-mode-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: var(--radius-md);
+            background: #f1f2f6;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .mode-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .treasure-found-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            color: white;
+        }
+        
+        .treasure-content {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+            border-radius: var(--radius-lg);
+            margin: 20px;
+            animation: celebrate 1s ease;
+        }
+        
+        @keyframes celebrate {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .celebration {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .prize-amount {
+            font-size: 36px;
+            font-weight: 800;
+            margin: 10px 0;
+            color: var(--secondary-color);
+        }
+        
+        .location-error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            max-width: 80%;
+        }
+        
+        .retry-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .tracking-status {
+            position: absolute;
+            top: 70px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow);
+        }
+        
+        .panel-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 550;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .panel-backdrop.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-map-marked-alt"></i> GeoHunter</h1>
+            <div class="header-actions">
+                <button class="header-action-btn" id="profileBtn">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button class="header-action-btn" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <div class="location-loader" id="locationLoader">
+                <div class="loader-spinner"></div>
+                <p>Определяем ваше местоположение...</p>
+            </div>
+            
+            <div class="location-error" id="locationError" style="display: none;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: var(--danger-color);"></i>
+                <p>Не удалось определить ваше местоположение</p>
+                <p style="font-size: 14px; margin-bottom: 10px;">Проверьте настройки геолокации в вашем браузере</p>
+                <button class="retry-btn" id="retryLocation">Попробовать снова</button>
+            </div>
+            
+            <div class="tracking-status" id="trackingStatus" style="display: none;">
+                <i class="fas fa-satellite" style="color: var(--accent-color);"></i>
+                <span>Отслеживание активно</span>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" id="zoomOutBtn">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="control-btn main-action" id="centerMapBtn">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+                <button class="control-btn" id="zoomInBtn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="panel-backdrop" id="panelBackdrop"></div>
+        </div>
+        
+        <div class="panel" id="panel">
+            <div class="panel-handle" id="panelHandle"></div>
+            <div class="panel-header">
+                <div class="panel-title">Ближайшие геометки</div>
+                <div class="view-toggle">
+                    <div class="toggle-option active">Список</div>
+                    <div class="toggle-option">Карта</div>
+                </div>
+            </div>
+            
+            <div class="radius-selector">
+                <div class="radius-option active" data-radius="100">100м</div>
+                <div class="radius-option" data-radius="200">200м</div>
+                <div class="radius-option" data-radius="500">500м</div>
+            </div>
+            
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Всего</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">Найдено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Осталось</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">85₽</div>
+                    <div class="stat-label">Выигрыш</div>
+                </div>
+            </div>
+            
+            <div class="game-mode-selector">
+                <div class="mode-btn active">Эконом</div>
+                <div class="mode-btn">Стандарт</div>
+                <div class="mode-btn">Премиум</div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+            </div>
+            
+            <div class="filters">
+                <div class="filter-pill active">Все</div>
+                <div class="filter-pill">С призами</div>
+                <div class="filter-pill">Ближайшие</div>
+                <div class="filter-pill">Дорогие</div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="action-btn" id="startLiveLocation">
+                    <i class="fas fa-satellite"></i>
+                    <span>Включить трансляцию</span>
+                </button>
+                <button class="action-btn" id="sendToBot">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Отправить в бот</span>
+                </button>
+                <button class="action-btn" id="closeGame">
+                    <i class="fas fa-times"></i>
+                    <span>Завершить игру</span>
+                </button>
+            </div>
+            
             <div class="geospots-list">
                 <!-- Список геометок будет заполнен динамически -->
             </div>
         </div>
     </div>
 
-    
     <script>
         // Функция для получения параметров из URL
         function getUrlParams() {
@@ -770,7 +1500,7 @@
             }).addTo(map);
         }
         
-        // Функция для создания геометок из переданных данных
+        // Функция для создания геометки из переданных данных
         function createGeospotsFromData() {
             // Удаляем существующие геометки, если есть
             geospots.forEach(spot => {
@@ -780,6 +1510,12 @@
             
             // Создаем геометки из переданных данных
             geospotsData.forEach((spotData, index) => {
+                // Проверяем, что координаты валидны
+                if (!spotData.lat || !spotData.lon) {
+                    console.error('Invalid coordinates for geospot', spotData);
+                    return;
+                }
+                
                 // Создаем метку геометки
                 const marker = L.marker([spotData.lat, spotData.lon], {
                     icon: L.divIcon({
@@ -808,8 +1544,14 @@
                 });
             });
             
-            // Обновляем список геометок в панели
+            // Обновляем список геометки в панели
             updateGeospotsList();
+            
+            // Убедимся, что все метки видны на карте
+            if (geospots.length > 0) {
+                const group = new L.featureGroup(geospots.map(spot => spot.marker));
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
         }
         
         // Функция для обновления списка геометок в панели
@@ -985,6 +1727,58 @@
             }, 5000);
         }
         
+        // Обработчики для кнопок управления
+        document.getElementById('startLiveLocation').addEventListener('click', () => {
+            if (!userMarker) {
+                alert('Сначала определите ваше местоположение');
+                return;
+            }
+            
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                this.innerHTML = '<i class="fas fa-satellite"></i><span>Включить трансляцию</span>';
+                trackingStatus.style.display = 'none';
+            } else {
+                startTrackingUser();
+                this.innerHTML = '<i class="fas fa-stop-circle"></i><span>Остановить трансляцию</span>';
+            }
+        });
+        
+        document.getElementById('sendToBot').addEventListener('click', () => {
+            // Отправляем данные о найденных геометках в бот
+            const foundGeospots = geospots.filter(spot => spot.found);
+            
+            if (foundGeospots.length === 0) {
+                alert('Вы еще не нашли ни одной геометки!');
+                return;
+            }
+            
+            const data = {
+                action: 'geospots_found',
+                geospots: foundGeospots.map(spot => ({
+                    id: geospots.indexOf(spot),
+                    prize_amount: spot.prize_amount
+                }))
+            };
+            
+            // Отправляем данные в бот через Telegram Web App
+            Telegram.WebApp.sendData(JSON.stringify(data));
+            alert('Данные отправлены в бот!');
+        });
+        
+        document.getElementById('closeGame').addEventListener('click', () => {
+            if (confirm('Вы уверены, что хотите завершить игру?')) {
+                // Останавливаем отслеживание
+                if (watchId) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+                
+                // Закрываем мини-приложение
+                Telegram.WebApp.close();
+            }
+        });
+        
         // Получаем местоположение при загрузке
         document.addEventListener('DOMContentLoaded', getUserLocation);
         
@@ -1008,7 +1802,7 @@
             panelBackdrop.classList.remove('visible');
         });
         
-        // Центрирование карты на пользователе
+        // Центрирование карта на пользователе
         document.getElementById('centerMapBtn').addEventListener('click', () => {
             if (userMarker) {
                 map.setView(userMarker.getLatLng(), 16);
@@ -1057,3 +1851,5 @@
     </script>
 </body>
 </html>
+                    
+ 
