@@ -22,6 +22,13 @@ from telegram.ext import (
 )
 from geopy.distance import geodesic
 
+# Добавляем новые импорты
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+import asyncio
+import threading
+import uvicorn
+
 # Загрузка переменных окружения
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
@@ -130,6 +137,133 @@ class DynamicEconomy:
 
 # Джекпот система
 JACKPOT_POOL = 100  # Начальный джекпот
+
+
+# новые 
+# ========== FASTAPI ИНТЕГРАЦИЯ ==========
+# Создаем FastAPI приложение поверх существующего бота
+app = FastAPI()
+
+# Настройка CORS для фронтенда
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# WebSocket менеджер для real-time обновлений
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[int, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: int):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+
+    def disconnect(self, user_id: int):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+
+    async def send_personal_message(self, message: dict, user_id: int):
+        if user_id in self.active_connections:
+            try:
+                await self.active_connections[user_id].send_json(message)
+            except Exception as e:
+                logger.error(f"Error sending message to {user_id}: {e}")
+                self.disconnect(user_id)
+
+manager = ConnectionManager()
+
+# API эндпоинты
+@app.get("/api/game/{user_id}")
+async def get_game_data(user_id: int):
+    if user_id not in games:
+        return {"error": "Game not found"}
+    
+    game = games[user_id]
+    return {
+        "center": game.center,
+        "radius": SEARCH_RADIUS,
+        "geospots": game.geospots,
+        "found_spots": game.found_spots,
+        "mode": game.game_mode,
+        "balance": user_balances.get(user_id, 0)
+    }
+
+@app.post("/api/check_location")
+async def check_location(data: dict):
+    user_id = data.get("user_id")
+    coords = data.get("coords")
+    
+    if user_id not in games:
+        return {"error": "Game not found"}
+    
+    game = games[user_id]
+    proximity_results = game.check_proximity(coords)
+    
+    for result in proximity_results:
+        if result['is_close']:
+            spot = result['spot']
+            if not spot['found']:
+                spot['found'] = True
+                game.found_spots.append(spot)
+                
+                prize = 0
+                if spot['has_prize']:
+                    prize = spot['prize_amount']
+                    user_balances[user_id] += prize
+                    log_transaction(user_id, prize, "prize_won")
+                
+                # Отправляем уведомление через WebSocket
+                await manager.send_personal_message({
+                    "type": "spot_found",
+                    "spot_index": game.geospots.index(spot),
+                    "prize": prize,
+                    "balance": user_balances.get(user_id, 0)
+                }, user_id)
+                
+                return {
+                    "found": True,
+                    "spot_index": game.geospots.index(spot),
+                    "prize": prize
+                }
+    
+    return {"found": False}
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: int):
+    await manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Поддерживаем соединение
+            await asyncio.sleep(10)
+            await websocket.send_json({"type": "ping"})
+    except WebSocketDisconnect:
+        manager.disconnect(user_id)
+    except Exception as e:
+        logger.error(f"WebSocket error for user {user_id}: {e}")
+        manager.disconnect(user_id)
+        
+        
+        
+# Модифицируем функцию обработки найденных меток
+async def handle_spot_found(user_id: int, spot_index: int, prize: int):
+    if user_id in games:
+        game = games[user_id]
+        game.geospots[spot_index]['found'] = True
+        game.found_spots.append(game.geospots[spot_index])
+        
+        # Отправляем обновление через WebSocket
+        await manager.send_personal_message({
+            "type": "spot_found",
+            "spot_index": spot_index,
+            "prize": prize,
+            "balance": user_balances.get(user_id, 0)
+        }, user_id)
+# новые         
+        
 
 # Система уровней
 USER_LEVELS = {
@@ -1101,6 +1235,27 @@ async def web_app_data(update: Update, context: CallbackContext) -> None:
         logger.error(f"Error processing web app data: {e}")
 # ... остальные обработчики ...
 
+#новый
+async def web_interface(update: Update, context: CallbackContext) -> None:
+    """Отправляет ссылку на веб-интерфейс"""
+    user = update.effective_user
+    
+    # Формируем URL с данными пользователя
+    web_app_url = f"https://sevryuk88.github.io/GeoHunter-/geohtml.html/?user_id={user.id}"
+    
+    keyboard = [
+        [InlineKeyboardButton("🌎 Открыть веб-интерфейс", web_app=WebAppInfo(url=web_app_url))],
+    ]
+    
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Откройте веб-интерфейс для игры:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+#новый
+
 async def user_stats(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     user = query.from_user
@@ -1377,7 +1532,7 @@ async def daily_bonus(update: Update, context: CallbackContext) -> None:
         chat_id=update.effective_chat.id,
         text=bonus_text
     )
-
+"""
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
@@ -1405,5 +1560,83 @@ def main() -> None:
     logger.info("Бот запущен и работает...")
     application.run_polling()
 
+if __name__ == '__main__':
+    main()
+    
+
+# ... остальной код ...
+
+def main() -> None:
+    # Запускаем FastAPI в отдельном потоке
+    fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
+    fastapi_thread.start()
+    
+    application = Application.builder().token(TOKEN).build()
+
+    # Регистрация обработчиков
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("stats", admin_stats))
+    application.add_handler(CommandHandler("check", force_check))
+    application.add_handler(CommandHandler("jackpot", check_jackpot))
+    application.add_handler(CommandHandler("withdraw", handle_withdraw))
+    application.add_handler(CommandHandler("bonus", daily_bonus))
+    application.add_handler(CommandHandler("web", web_interface))  # ПЕРЕМЕСТИЛИ СЮДА
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
+    # Обработка геопозиции
+    application.add_handler(MessageHandler(filters.LOCATION, handle_location))
+    
+    # Обработка живой геопозиции
+    application.add_handler(MessageHandler(filters.LOCATION, handle_live_location))
+    
+    # Обработка данных из Web App
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
+
+    # Запуск бота
+    logger.info("Бот запущен и работает...")
+    logger.info("FastAPI сервер запущен на порту 8000")
+    application.run_polling()
+
+# ... остальной код ...
+"""
+
+def run_fastapi():
+    """Запуск FastAPI сервера в отдельном потоке"""
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+def main() -> None:
+    # Запускаем FastAPI в отдельном потоке
+    fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
+    fastapi_thread.start()
+    
+    application = Application.builder().token(TOKEN).build()
+
+    # Регистрация обработчиков
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("stats", admin_stats))
+    application.add_handler(CommandHandler("check", force_check))
+    application.add_handler(CommandHandler("jackpot", check_jackpot))
+    application.add_handler(CommandHandler("withdraw", handle_withdraw))
+    application.add_handler(CommandHandler("bonus", daily_bonus))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
+    # Обработка геопозиции
+    application.add_handler(MessageHandler(filters.LOCATION, handle_location))
+    
+    # Обработка живой геопозиции
+    application.add_handler(MessageHandler(filters.LOCATION, handle_live_location))
+    
+    # Обработка данных из Web App
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
+    
+
+    # Запуск бота
+    logger.info("Бот запущен и работает...")
+    logger.info("FastAPI сервер запущен на порту 8000")
+    application.run_polling()
+    
+    
 if __name__ == '__main__':
     main()

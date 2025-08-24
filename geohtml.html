@@ -3,1853 +3,538 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GeoHunter - Охота за сокровищами</title>
+    <title>GeoHunter</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ВАШ_API_КЛЮЧ&lang=ru_RU"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #6a40bf;
-            --secondary-color: #ff9f43;
-            --accent-color: #36bd78;
-            --dark-color: #2d3436;
-            --light-color: #f5f6fa;
-            --danger-color: #e84118;
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        
+
         body {
-            background-color: var(--light-color);
-            color: var(--dark-color);
-            padding: 0;
             overflow: hidden;
             height: 100vh;
+            background: #f5f5f5;
         }
-        
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 0;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
-            color: white;
-            padding: 16px;
-            text-align: center;
-            position: relative;
-            box-shadow: var(--shadow);
-            z-index: 1000;
-        }
-        
-        .header h1 {
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .header-actions {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            gap: 12px;
-        }
-        
-        .header-action-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        
-        .map-container {
-            flex: 1;
-            position: relative;
-        }
-        
+
         #map {
-            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
             z-index: 1;
         }
-        
-        .location-loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: var(--radius-lg);
-            text-align: center;
-            z-index: 1000;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .loader-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--light-color);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .controls {
-            position: absolute;
-            bottom: 90px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            padding: 0 16px;
-            z-index: 500;
-        }
-        
-        .control-btn {
-            background: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            color: var(--primary-color);
-            font-size: 20px;
-        }
-        
-        .main-action {
-            background: var(--secondary-color);
-            color: white;
-            width: 60px;
-            height: 60px;
-        }
-        
-        .panel {
-            position: absolute;
+
+        .bottom-sheet {
+            position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: white;
-            border-top-left-radius: var(--radius-lg);
-            border-top-right-radius: var(--radius-lg);
-            padding: 16px;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-            transform: translateY(calc(100% - 50px));
-            transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1);
-            z-index: 600;
-            max-height: 85vh;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            transition: transform 0.3s ease;
         }
-        
-        .panel.expanded {
-            transform: translateY(0);
-            height: auto;
-            overflow-y: auto;
+
+        .bottom-sheet.collapsed {
+            transform: translateY(calc(100% - 80px));
         }
-        
-        .panel-handle {
+
+        .sheet-handle {
             width: 40px;
-            height: 5px;
-            background: #ddd;
-            border-radius: 3px;
-            margin: 0 auto 16px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin: 16px auto;
             cursor: pointer;
         }
-        
-        .panel-header {
+
+        .sheet-content {
+            padding: 0 20px 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .game-info {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
-        
-        .panel-title {
-            font-weight: 700;
+
+        .balance {
             font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
         }
-        
-        .view-toggle {
-            display: flex;
-            background: #f1f2f6;
-            border-radius: var(--radius-md);
-            padding: 4px;
-        }
-        
-        .toggle-option {
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
+
+        .mode {
+            padding: 6px 12px;
+            border-radius: 16px;
             font-size: 14px;
             font-weight: 500;
-            cursor: pointer;
         }
-        
-        .toggle-option.active {
-            background: white;
-            box-shadow: var(--shadow);
+
+        .mode.economy { background: #E8F5E9; color: #2E7D32; }
+        .mode.standard { background: #E3F2FD; color: #1565C0; }
+        .mode.premium { background: #F3E5F5; color: #7B1FA2; }
+
+        .progress-container {
+            margin: 20px 0;
         }
-        
-        .radius-selector {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 16px;
-            background: #f1f2f6;
-            padding: 8px;
-            border-radius: var(--radius-md);
+
+        .progress-bar {
+            height: 8px;
+            background: #F5F5F5;
+            border-radius: 4px;
+            overflow: hidden;
         }
-        
-        .radius-option {
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-weight: 500;
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B6B, #FF8E53);
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
-        
-        .radius-option.active {
-            background: white;
-            box-shadow: var(--shadow);
-        }
-        
-        .filters {
-            display: flex;
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            margin-bottom: 16px;
-            overflow-x: auto;
-            padding-bottom: 8px;
+            margin: 20px 0;
         }
-        
-        .filter-pill {
-            background: #f1f2f6;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        
-        .filter-pill.active {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 16px;
-        }
-        
-        .action-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 16px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .action-btn:hover {
-            background: #5a30af;
-        }
-        
-        .action-btn i {
-            font-size: 16px;
-        }
-        
-        .geospots-list {
-            overflow-y: auto;
-            max-height: 40vh;
-        }
-        
-        .geospot-item {
-            display: flex;
-            align-items: center;
+
+        .stat-card {
+            background: #FAFAFA;
             padding: 12px;
-            border-bottom: 1px solid #eee;
+            border-radius: 12px;
+            text-align: center;
         }
-        
-        .geospot-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        
-        .geospot-info {
-            flex: 1;
-        }
-        
-        .geospot-name {
-            font-weight: 600;
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
             margin-bottom: 4px;
         }
-        
-        .geospot-meta {
-            display: flex;
+
+        .stat-label {
             font-size: 12px;
-            color: #7f8c8d;
+            color: #757575;
         }
-        
-        .geospot-meta span {
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
         }
-        
-        .geospot-meta i {
-            margin-right: 4px;
-        }
-        
-        .geospot-value {
-            font-weight: 700;
-            color: var(--accent-color);
-        }
-        
-        .distance-badge {
-            background: var(--primary-color);
-            color: white;
-            padding: 4px 8px;
+
+        .btn {
+            padding: 16px;
+            border: none;
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
-        
-        .user-marker {
+
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #F5F5F5;
+            color: #424242;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .spot-marker {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: var(--primary-color);
             border: 3px solid white;
-            box-shadow: var(--shadow);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
-        
-        .custom-marker {
-            width: 32px;
-            height: 32px;
-            border-radius: 50% 50% 50% 0;
-            background: var(--secondary-color);
-            transform: rotate(-45deg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            animation: pulse 2s infinite;
+
+        .spot-marker.found {
+            animation: pulse 1.5s infinite;
         }
-        
-        .custom-marker i {
-            transform: rotate(45deg);
-            color: white;
-        }
-        
-        .custom-marker.found {
-            background: var(--accent-color);
-            animation: none;
-        }
-        
-        .pulse {
-            display: block;
-            border-radius: 50%;
-            cursor: pointer;
-            animation: pulse 2s infinite;
-        }
-        
+
         @keyframes pulse {
-            0% {
-                transform: scale(0.9);
-                box-shadow: 0 0 0 0 rgba(106, 64, 191, 0.7);
-            }
-            
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(106, 64, 191, 0);
-            }
-            
-            100% {
-                transform: scale(0.9);
-                box-shadow: 0 0 0 0 rgba(106, 64, 191, 0);
-            }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
-        
-        .stats-bar {
-            display: flex;
-            justify-content: space-around;
-            background: white;
-            padding: 12px;
-            border-radius: var(--radius-md);
-            margin-bottom: 16px;
-            box-shadow: var(--shadow);
-        }
-        
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .stat-value {
-            font-weight: 700;
-            font-size: 18px;
-            color: var(--primary-color);
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-        
-        .progress-container {
-            background: #f1f2f6;
-            border-radius: 20px;
-            height: 8px;
-            margin: 16px 0;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
-            border-radius: 20px;
-            width: 65%;
-        }
-        
-        .game-mode-selector {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        
-        .mode-btn {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            border-radius: var(--radius-md);
-            background: #f1f2f6;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .mode-btn.active {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        .treasure-found-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            color: white;
-        }
-        
-        .treasure-content {
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
-            border-radius: var(--radius-lg);
-            margin: 20px;
-            animation: celebrate 1s ease;
-        }
-        
-        @keyframes celebrate {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        .celebration {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-        
-        .prize-amount {
-            font-size: 36px;
-            font-weight: 800;
-            margin: 10px 0;
-            color: var(--secondary-color);
-        }
-        
-        .location-error {
-            position: absolute;
-            top: 50%;
+
+        .toast {
+            position: fixed;
+            top: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: var(--radius-lg);
-            text-align: center;
-            z-index: 1000;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            max-width: 80%;
-        }
-        
-        .retry-btn {
-            background: var(--primary-color);
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            animation: slideIn 0.3s ease;
         }
-        
-        .tracking-status {
-            position: absolute;
-            top: 70px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
-            border-radius: var(--radius-md);
-            font-size: 12px;
-            z-index: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: var(--shadow);
-        }
-        
-        .panel-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: 550;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        
-        .panel-backdrop.visible {
-            opacity: 1;
-            visibility: visible;
+
+        @keyframes slideIn {
+            from { transform: translate(-50%, -20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-map-marked-alt"></i> GeoHunter</h1>
-            <div class="header-actions">
-                <button class="header-action-btn" id="profileBtn">
-                    <i class="fas fa-user"></i>
-                </button>
-                <button class="header-action-btn" id="settingsBtn">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
-        </div>
-        
-        <div class="map-container">
-            <div id="map"></div>
-            
-            <div class="location-loader" id="locationLoader">
-                <div class="loader-spinner"></div>
-                <p>Определяем ваше местоположение...</p>
-            </div>
-            
-            <div class="location-error" id="locationError" style="display: none;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: var(--danger-color);"></i>
-                <p>Не удалось определить ваше местоположение</p>
-                <p style="font-size: 14px; margin-bottom: 10px;">Проверьте настройки геолокации в вашем браузере</p>
-                <button class="retry-btn" id="retryLocation">Попробовать снова</button>
-            </div>
-            
-            <div class="tracking-status" id="trackingStatus" style="display: none;">
-                <i class="fas fa-satellite" style="color: var(--accent-color);"></i>
-                <span>Отслеживание активно</span>
-            </div>
-            
-            <div class="controls">
-                <button class="control-btn" id="zoomOutBtn">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <button class="control-btn main-action" id="centerMapBtn">
-                    <i class="fas fa-location-arrow"></i>
-                </button>
-                <button class="control-btn" id="zoomInBtn">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            
-            <div class="panel-backdrop" id="panelBackdrop"></div>
-        </div>
-        
-        <div class="panel" id="panel">
-            <div class="panel-handle" id="panelHandle"></div>
-            <div class="panel-header">
-                <div class="panel-title">Ближайшие геометки</div>
-                <div class="view-toggle">
-                    <div class="toggle-option active">Список</div>
-                    <div class="toggle-option">Карта</div>
-                </div>
-            </div>
-            
-            <div class="radius-selector">
-                <div class="radius-option active" data-radius="100">100м</div>
-                <div class="radius-option" data-radius="200">200м</div>
-                <div class="radius-option" data-radius="500">500м</div>
-            </div>
-            
-            <div class="stats-bar">
-                <div class="stat-item">
-                    <div class="stat-value">5</div>
-                    <div class="stat-label">Всего</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">2</div>
-                    <div class="stat-label">Найдено</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">3</div>
-                    <div class="stat-label">Осталось</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">85₽</div>
-                    <div class="stat-label">Выигрыш</div>
-                </div>
-            </div>
-            
-            <div class="game-mode-selector">
-                <div class="mode-btn active">Эконом</div>
-                <div class="mode-btn">Стандарт</div>
-                <div class="mode-btn">Премиум</div>
+    <div id="map"></div>
+    
+    <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <div class="game-info">
+                <div class="balance">0 ₽</div>
+                <div class="mode economy">Эконом</div>
             </div>
             
             <div class="progress-container">
-                <div class="progress-bar"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div style="text-align: center; margin-top: 8px; font-size: 14px;">
+                    Найдено: <span class="found-count">0</span>/<span class="total-count">5</span>
+                </div>
             </div>
             
-            <div class="filters">
-                <div class="filter-pill active">Все</div>
-                <div class="filter-pill">С призами</div>
-                <div class="filter-pill">Ближайшие</div>
-                <div class="filter-pill">Дорогие</div>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="action-btn" id="startLiveLocation">
-                    <i class="fas fa-satellite"></i>
-                    <span>Включить трансляцию</span>
-                    <!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GeoHunter - Охота за сокровищами</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #6a40bf;
-            --secondary-color: #ff9f43;
-            --accent-color: #36bd78;
-            --dark-color: #2d3436;
-            --light-color: #f5f6fa;
-            --danger-color: #e84118;
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        
-        body {
-            background-color: var(--light-color);
-            color: var(--dark-color);
-            padding: 0;
-            overflow: hidden;
-            height: 100vh;
-        }
-        
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 0;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
-            color: white;
-            padding: 16px;
-            text-align: center;
-            position: relative;
-            box-shadow: var(--shadow);
-            z-index: 1000;
-        }
-        
-        .header h1 {
-            font-size: 20px;
-            font-weight: 700;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .header-actions {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            gap: 12px;
-        }
-        
-        .header-action-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        
-        .map-container {
-            flex: 1;
-            position: relative;
-        }
-        
-        #map {
-            height: 100%;
-            width: 100%;
-            z-index: 1;
-        }
-        
-        .location-loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: var(--radius-lg);
-            text-align: center;
-            z-index: 1000;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .loader-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--light-color);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .controls {
-            position: absolute;
-            bottom: 90px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            padding: 0 16px;
-            z-index: 500;
-        }
-        
-        .control-btn {
-            background: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            color: var(--primary-color);
-            font-size: 20px;
-        }
-        
-        .main-action {
-            background: var(--secondary-color);
-            color: white;
-            width: 60px;
-            height: 60px;
-        }
-        
-        .panel {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top-left-radius: var(--radius-lg);
-            border-top-right-radius: var(--radius-lg);
-            padding: 16px;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-            transform: translateY(calc(100% - 50px));
-            transition: transform 0.4s cubic-bezier(0.28, 0.84, 0.42, 1);
-            z-index: 600;
-            max-height: 85vh;
-        }
-        
-        .panel.expanded {
-            transform: translateY(0);
-            height: auto;
-            overflow-y: auto;
-        }
-        
-        .panel-handle {
-            width: 40px;
-            height: 5px;
-            background: #ddd;
-            border-radius: 3px;
-            margin: 0 auto 16px;
-            cursor: pointer;
-        }
-        
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .panel-title {
-            font-weight: 700;
-            font-size: 18px;
-        }
-        
-        .view-toggle {
-            display: flex;
-            background: #f1f2f6;
-            border-radius: var(--radius-md);
-            padding: 4px;
-        }
-        
-        .toggle-option {
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        
-        .toggle-option.active {
-            background: white;
-            box-shadow: var(--shadow);
-        }
-        
-        .radius-selector {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 16px;
-            background: #f1f2f6;
-            padding: 8px;
-            border-radius: var(--radius-md);
-        }
-        
-        .radius-option {
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-weight: 500;
-        }
-        
-        .radius-option.active {
-            background: white;
-            box-shadow: var(--shadow);
-        }
-        
-        .filters {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-        }
-        
-        .filter-pill {
-            background: #f1f2f6;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        
-        .filter-pill.active {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 16px;
-        }
-        
-        .action-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 16px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .action-btn:hover {
-            background: #5a30af;
-        }
-        
-        .action-btn i {
-            font-size: 16px;
-        }
-        
-        .geospots-list {
-            overflow-y: auto;
-            max-height: 40vh;
-        }
-        
-        .geospot-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .geospot-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        
-        .geospot-info {
-            flex: 1;
-        }
-        
-        .geospot-name {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .geospot-meta {
-            display: flex;
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-        
-        .geospot-meta span {
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .geospot-meta i {
-            margin-right: 4px;
-        }
-        
-        .geospot-value {
-            font-weight: 700;
-            color: var(--accent-color);
-        }
-        
-        .distance-badge {
-            background: var(--primary-color);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-        
-        .user-marker {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            border: 3px solid white;
-            box-shadow: var(--shadow);
-        }
-        
-        .custom-marker {
-            width: 32px;
-            height: 32px;
-            border-radius: 50% 50% 50% 0;
-            background: var(--secondary-color);
-            transform: rotate(-45deg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            animation: pulse 2s infinite;
-        }
-        
-        .custom-marker i {
-            transform: rotate(45deg);
-            color: white;
-        }
-        
-        .custom-marker.found {
-            background: var(--accent-color);
-            animation: none;
-        }
-        
-        .pulse {
-            display: block;
-            border-radius: 50%;
-            cursor: pointer;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(0.9);
-                box-shadow: 0 0 0 0 rgba(106, 64, 191, 0.7);
-            }
-            
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(106, 64, 191, 0);
-            }
-            
-            100% {
-                transform: scale(0.9);
-                box-shadow: 0 0 0 0 rgba(106, 64, 191, 0);
-            }
-        }
-        
-        .stats-bar {
-            display: flex;
-            justify-content: space-around;
-            background: white;
-            padding: 12px;
-            border-radius: var(--radius-md);
-            margin-bottom: 16px;
-            box-shadow: var(--shadow);
-        }
-        
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .stat-value {
-            font-weight: 700;
-            font-size: 18px;
-            color: var(--primary-color);
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-        
-        .progress-container {
-            background: #f1f2f6;
-            border-radius: 20px;
-            height: 8px;
-            margin: 16px 0;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
-            border-radius: 20px;
-            width: 65%;
-        }
-        
-        .game-mode-selector {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        
-        .mode-btn {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            border-radius: var(--radius-md);
-            background: #f1f2f6;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .mode-btn.active {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        .treasure-found-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            color: white;
-        }
-        
-        .treasure-content {
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, var(--primary-color), #8e44ad);
-            border-radius: var(--radius-lg);
-            margin: 20px;
-            animation: celebrate 1s ease;
-        }
-        
-        @keyframes celebrate {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        .celebration {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-        
-        .prize-amount {
-            font-size: 36px;
-            font-weight: 800;
-            margin: 10px 0;
-            color: var(--secondary-color);
-        }
-        
-        .location-error {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: var(--radius-lg);
-            text-align: center;
-            z-index: 1000;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            max-width: 80%;
-        }
-        
-        .retry-btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .tracking-status {
-            position: absolute;
-            top: 70px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
-            border-radius: var(--radius-md);
-            font-size: 12px;
-            z-index: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: var(--shadow);
-        }
-        
-        .panel-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: 550;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        
-        .panel-backdrop.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-map-marked-alt"></i> GeoHunter</h1>
-            <div class="header-actions">
-                <button class="header-action-btn" id="profileBtn">
-                    <i class="fas fa-user"></i>
-                </button>
-                <button class="header-action-btn" id="settingsBtn">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
-        </div>
-        
-        <div class="map-container">
-            <div id="map"></div>
-            
-            <div class="location-loader" id="locationLoader">
-                <div class="loader-spinner"></div>
-                <p>Определяем ваше местоположение...</p>
-            </div>
-            
-            <div class="location-error" id="locationError" style="display: none;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: var(--danger-color);"></i>
-                <p>Не удалось определить ваше местоположение</p>
-                <p style="font-size: 14px; margin-bottom: 10px;">Проверьте настройки геолокации в вашем браузере</p>
-                <button class="retry-btn" id="retryLocation">Попробовать снова</button>
-            </div>
-            
-            <div class="tracking-status" id="trackingStatus" style="display: none;">
-                <i class="fas fa-satellite" style="color: var(--accent-color);"></i>
-                <span>Отслеживание активно</span>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="prize-count">0</div>
+                    <div class="stat-label">Призы</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-prize">0 ₽</div>
+                    <div class="stat-label">Выигрыш</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="time-elapsed">0:00</div>
+                    <div class="stat-label">Время</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="distance-walked">0 м</div>
+                    <div class="stat-label">Дистанция</div>
+                </div>
             </div>
             
             <div class="controls">
-                <button class="control-btn" id="zoomOutBtn">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <button class="control-btn main-action" id="centerMapBtn">
-                    <i class="fas fa-location-arrow"></i>
-                </button>
-                <button class="control-btn" id="zoomInBtn">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            
-            <div class="panel-backdrop" id="panelBackdrop"></div>
-        </div>
-        
-        <div class="panel" id="panel">
-            <div class="panel-handle" id="panelHandle"></div>
-            <div class="panel-header">
-                <div class="panel-title">Ближайшие геометки</div>
-                <div class="view-toggle">
-                    <div class="toggle-option active">Список</div>
-                    <div class="toggle-option">Карта</div>
-                </div>
-            </div>
-            
-            <div class="radius-selector">
-                <div class="radius-option active" data-radius="100">100м</div>
-                <div class="radius-option" data-radius="200">200м</div>
-                <div class="radius-option" data-radius="500">500м</div>
-            </div>
-            
-            <div class="stats-bar">
-                <div class="stat-item">
-                    <div class="stat-value">5</div>
-                    <div class="stat-label">Всего</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">2</div>
-                    <div class="stat-label">Найдено</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">3</div>
-                    <div class="stat-label">Осталось</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">85₽</div>
-                    <div class="stat-label">Выигрыш</div>
-                </div>
-            </div>
-            
-            <div class="game-mode-selector">
-                <div class="mode-btn active">Эконом</div>
-                <div class="mode-btn">Стандарт</div>
-                <div class="mode-btn">Премиум</div>
-            </div>
-            
-            <div class="progress-container">
-                <div class="progress-bar"></div>
-            </div>
-            
-            <div class="filters">
-                <div class="filter-pill active">Все</div>
-                <div class="filter-pill">С призами</div>
-                <div class="filter-pill">Ближайшие</div>
-                <div class="filter-pill">Дорогие</div>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="action-btn" id="startLiveLocation">
-                    <i class="fas fa-satellite"></i>
-                    <span>Включить трансляцию</span>
-                </button>
-                <button class="action-btn" id="sendToBot">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Отправить в бот</span>
-                </button>
-                <button class="action-btn" id="closeGame">
-                    <i class="fas fa-times"></i>
-                    <span>Завершить игру</span>
-                </button>
-            </div>
-            
-            <div class="geospots-list">
-                <!-- Список геометок будет заполнен динамически -->
+                <button class="btn btn-secondary" id="btn-location">📍 Обновить позицию</button>
+                <button class="btn btn-primary" id="btn-end">Завершить игру</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Функция для получения параметров из URL
-        function getUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const centerLat = parseFloat(urlParams.get('center_lat'));
-            const centerLon = parseFloat(urlParams.get('center_lon'));
-            const radius = parseInt(urlParams.get('radius')) || 100;
-            const geospotsEncoded = urlParams.get('geospots');
-            const mode = urlParams.get('mode') || 'standard';
-            
-            let geospots = [];
-            if (geospotsEncoded) {
-                try {
-                    geospots = JSON.parse(decodeURIComponent(geospotsEncoded));
-                } catch (e) {
-                    console.error('Error parsing geospots data:', e);
-                }
-            }
-            
-            return { centerLat, centerLon, radius, geospots, mode };
-        }
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
         
-        // Получаем параметры из URL
-        const { centerLat, centerLon, radius, geospots: geospotsData, mode } = getUrlParams();
+        let map, userPlacemark, circle, spots = [];
+        let gameData = null;
+        let startTime = null;
+        let lastPosition = null;
+        let totalDistance = 0;
         
-        // Инициализация карты с центром из параметров
-        let map = L.map('map').setView([centerLat || 52.4345, centerLon || 30.9754], 15);
+        // Инициализация карты
+        ymaps.ready(initMap);
         
-        // Добавление слоя карты (OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-        
-        let userMarker, radiusCircle, watchId, gameCenter, geospots = [];
-        const locationLoader = document.getElementById('locationLoader');
-        const locationError = document.getElementById('locationError');
-        const trackingStatus = document.getElementById('trackingStatus');
-        const panelBackdrop = document.getElementById('panelBackdrop');
-        let currentRadius = radius; // Используем радиус из параметров
-        
-        // Функция для получения местоположения пользователя
-        function getUserLocation() {
-            locationLoader.style.display = 'flex';
-            locationError.style.display = 'none';
-            
-            if (navigator.geolocation) {
-                // Останавливаем предыдущее отслеживание, если оно было
-                if (watchId) {
-                    navigator.geolocation.clearWatch(watchId);
-                }
-                
-                // Получаем текущее местоположение для установки центра игры
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        const userLat = position.coords.latitude;
-                        const userLng = position.coords.longitude;
-                        
-                        // Сохраняем центр игры (используем переданный центр, а не текущее положение)
-                        gameCenter = [centerLat || userLat, centerLon || userLng];
-                        
-                        // Устанавливаем карту в центр игры
-                        map.setView(gameCenter, 16);
-                        
-                        // Создаем круг поиска (неподвижный)
-                        createSearchRadius(gameCenter[0], gameCenter[1]);
-                        
-                        // Создаем геометки из переданных данных
-                        createGeospotsFromData();
-                        
-                        // Запускаем отслеживание местоположения пользователя
-                        startTrackingUser();
-                        
-                        // Скрываем индикатор загрузки
-                        locationLoader.style.display = 'none';
-                    },
-                    error => {
-                        // Ошибка получения местоположения
-                        console.error('Ошибка получения геолокации:', error);
-                        locationLoader.style.display = 'none';
-                        locationError.style.display = 'flex';
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
-                );
-            } else {
-                // Браузер не поддерживает геолокацию
-                locationLoader.style.display = 'none';
-                locationError.style.display = 'flex';
-                locationError.querySelector('p').textContent = 'Ваш браузер не поддерживает геолокацию';
-            }
-        }
-        
-        // Функция для создания круга поиска
-        function createSearchRadius(lat, lng) {
-            // Удаляем предыдущий круг, если он есть
-            if (radiusCircle) {
-                map.removeLayer(radiusCircle);
-            }
-            
-            // Создаем новый круг с выбранным радиусом
-            radiusCircle = L.circle([lat, lng], {
-                color: '#6a40bf',
-                fillColor: '#6a40bf',
-                fillOpacity: 0.1,
-                radius: currentRadius
-            }).addTo(map);
-        }
-        
-        // Функция для создания геометки из переданных данных
-        function createGeospotsFromData() {
-            // Удаляем существующие геометки, если есть
-            geospots.forEach(spot => {
-                map.removeLayer(spot.marker);
+        function initMap() {
+            map = new ymaps.Map('map', {
+                center: [55.76, 37.64],
+                zoom: 15,
+                controls: ['zoomControl']
             });
-            geospots = [];
             
-            // Создаем геометки из переданных данных
-            geospotsData.forEach((spotData, index) => {
-                // Проверяем, что координаты валидны
-                if (!spotData.lat || !spotData.lon) {
-                    console.error('Invalid coordinates for geospot', spotData);
-                    return;
-                }
+            // Запрос данных игры
+            fetchGameData();
+            
+            // Обработчики жестов для нижней шторки
+            initBottomSheet();
+            
+            // Обработчики кнопок
+            document.getElementById('btn-location').addEventListener('click', updateLocation);
+            document.getElementById('btn-end').addEventListener('click', endGame);
+            
+            // Запускаем таймер
+            startTime = new Date();
+            setInterval(updateTimer, 1000);
+        }
+        
+        async function fetchGameData() {
+            try {
+                // Получаем данные игры с бэкенда
+                const response = await fetch(`/api/game/${tg.initDataUnsafe.user.id}`);
+                gameData = await response.json();
                 
-                // Создаем метку геометки
-                const marker = L.marker([spotData.lat, spotData.lon], {
-                    icon: L.divIcon({
-                        className: `custom-marker ${spotData.found ? 'found' : ''}`,
-                        html: `<i class="${spotData.found ? 'fas fa-check' : 'fas fa-dollar-sign'}"></i>`,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 32]
-                    })
-                }).addTo(map);
+                // Устанавливаем центр карты
+                map.setCenter(gameData.center, 16);
                 
-                // Добавляем попап с информацией
-                marker.bindPopup(`
-                    <div style="font-weight: bold; margin-bottom: 8px;">Геометка #${index+1}</div>
-                    <div>Награда: <b>${spotData.has_prize ? spotData.prize_amount + '₽' : 'Отсутствует'}</b></div>
-                    <div>Статус: <b>${spotData.found ? 'Найдено' : 'Не найдено'}</b></div>
-                `);
-                
-                // Сохраняем информацию о геометке
-                geospots.push({
-                    marker: marker,
-                    lat: spotData.lat,
-                    lng: spotData.lon,
-                    has_prize: spotData.has_prize,
-                    prize_amount: spotData.prize_amount,
-                    found: spotData.found || false
+                // Создаем круг радиуса
+                circle = new ymaps.Circle([
+                    gameData.center,
+                    gameData.radius
+                ], {}, {
+                    fillColor: "rgba(33, 150, 243, 0.2)",
+                    strokeColor: "#2196F3",
+                    strokeOpacity: 0.8,
+                    strokeWidth: 2
                 });
-            });
-            
-            // Обновляем список геометки в панели
-            updateGeospotsList();
-            
-            // Убедимся, что все метки видны на карте
-            if (geospots.length > 0) {
-                const group = new L.featureGroup(geospots.map(spot => spot.marker));
-                map.fitBounds(group.getBounds().pad(0.1));
+                
+                map.geoObjects.add(circle);
+                
+                // Добавляем метки
+                gameData.geospots.forEach((spot, index) => {
+                    const placemark = new ymaps.Placemark(spot.coords, {}, {
+                        iconLayout: 'default#image',
+                        iconImageHref: spot.has_prize ? 'money.png' : 'empty.png',
+                        iconImageSize: [24, 24],
+                        iconImageOffset: [-12, -12],
+                        zIndex: spot.found ? 100 : 10
+                    });
+                    
+                    map.geoObjects.add(placemark);
+                    spots.push(placemark);
+                    
+                    // Если метка найдена, отмечаем это
+                    if (spot.found) {
+                        placemark.options.set('iconImageHref', 'found.png');
+                    }
+                });
+                
+                // Обновляем UI
+                updateUI();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                showToast('Ошибка загрузки данных игры');
             }
         }
         
-        // Функция для обновления списка геометок в панели
-        function updateGeospotsList() {
-            const geospotsList = document.querySelector('.geospots-list');
-            if (!geospotsList) return;
+        function initBottomSheet() {
+            const sheet = document.querySelector('.bottom-sheet');
+            const handle = document.querySelector('.sheet-handle');
+            let startY, startHeight;
             
-            geospotsList.innerHTML = '';
-            
-            geospots.forEach((spot, index) => {
-                const distance = gameCenter ? 
-                    calculateDistance(gameCenter[0], gameCenter[1], spot.lat, spot.lng).toFixed(0) : 
-                    '?';
-                
-                const geospotItem = document.createElement('div');
-                geospotItem.className = 'geospot-item';
-                geospotItem.innerHTML = `
-                    <div class="geospot-icon ${spot.found ? 'found' : ''}">
-                        <i class="${spot.found ? 'fas fa-check' : 'fas fa-coins'}"></i>
-                    </div>
-                    <div class="geospot-info">
-                        <div class="geospot-name">Геометка #${index+1}</div>
-                        <div class="geospot-meta">
-                            <span><i class="fas fa-road"></i> ${distance}м</span>
-                            <span><i class="fas fa-bolt"></i> ${spot.has_prize ? 'Высокая' : 'Низкая'}</span>
-                        </div>
-                    </div>
-                    <div class="geospot-value">${spot.has_prize ? spot.prize_amount + '₽' : 'Нет'}</div>
-                `;
-                
-                geospotsList.appendChild(geospotItem);
+            handle.addEventListener('touchstart', function(e) {
+                startY = e.touches[0].clientY;
+                startHeight = parseInt(document.body.style.height);
+                document.body.style.transition = 'none';
             });
-        }
-        
-        // Функция для запуска отслеживания пользователя
-        function startTrackingUser() {
-            // Запускаем отслеживание местоположения в реальном времени
-            watchId = navigator.geolocation.watchPosition(
-                position => {
-                    // Успешно получили местоположение
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    
-                    // Показываем статус отслеживания
-                    trackingStatus.style.display = 'flex';
-                    
-                    // Добавляем/обновляем маркер пользователя
-                    if (userMarker) {
-                        userMarker.setLatLng([userLat, userLng]);
-                    } else {
-                        userMarker = L.marker([userLat, userLng], {
-                            icon: L.divIcon({
-                                className: 'user-marker',
-                                html: '<div class="pulse"></div>',
-                                iconSize: [24, 24],
-                                iconAnchor: [12, 12]
-                            })
-                        }).addTo(map);
-                    }
-                    
-                    // Проверяем близость к геометкам
-                    checkProximityToGeospots(userLat, userLng);
-                },
-                error => {
-                    // Ошибка получения местоположения
-                    console.error('Ошибка получения геолокации:', error);
-                    trackingStatus.style.display = 'none';
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
-                    distanceFilter: 5 // Обновлять при перемещении на 5 метров
-                }
-            );
-        }
-        
-        // Функция для проверки близости к геометкам
-        function checkProximityToGeospots(userLat, userLng) {
-            geospots.forEach((spot, index) => {
-                if (!spot.found) {
-                    // Вычисляем расстояние до геометки
-                    const distance = calculateDistance(userLat, userLng, spot.lat, spot.lng);
-                    
-                    // Если пользователь близко к геометке
-                    if (distance < 20) { // 20 метров - расстояние для "нахождения" геометки
-                        // Помечаем геометку как найденную
-                        spot.found = true;
-                        
-                        // Обновляем иконку геометки
-                        spot.marker.setIcon(L.divIcon({
-                            className: 'custom-marker found',
-                            html: '<i class="fas fa-check"></i>',
-                            iconSize: [32, 32],
-                            iconAnchor: [16, 32]
-                        }));
-                        
-                        // Показываем уведомление о найденной геометке
-                        if (spot.has_prize) {
-                            showTreasureFoundNotification(spot.prize_amount, index);
-                        } else {
-                            showEmptyGeospotNotification();
-                        }
-                        
-                        // Обновляем список геометок в панели
-                        updateGeospotsList();
-                    }
+            
+            handle.addEventListener('touchmove', function(e) {
+                const delta = startY - e.touches[0].clientY;
+                const newHeight = Math.min(Math.max(300, startHeight + delta), window.innerHeight - 100);
+                document.body.style.height = `${newHeight}px`;
+            });
+            
+            handle.addEventListener('touchend', function() {
+                document.body.style.transition = 'height 0.3s ease';
+                const height = parseInt(document.body.style.height);
+                if (height < window.innerHeight * 0.5) {
+                    document.body.style.height = '300px';
+                    sheet.classList.add('collapsed');
+                } else {
+                    document.body.style.height = '70vh';
+                    sheet.classList.remove('collapsed');
                 }
             });
         }
         
-        // Функция для вычисления расстояния между двумя точками
-        function calculateDistance(lat1, lng1, lat2, lng2) {
+        async function updateLocation() {
+            try {
+                // Запрашиваем текущее местоположение
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                });
+                
+                const coords = [position.coords.latitude, position.coords.longitude];
+                
+                // Обновляем позицию пользователя на карте
+                if (!userPlacemark) {
+                    userPlacemark = new ymaps.Placemark(coords, {}, {
+                        iconLayout: 'default#image',
+                        iconImageHref: 'user.png',
+                        iconImageSize: [32, 32],
+                        iconImageOffset: [-16, -16],
+                        zIndex: 1000
+                    });
+                    map.geoObjects.add(userPlacemark);
+                } else {
+                    userPlacemark.geometry.setCoordinates(coords);
+                }
+                
+                // Центрируем карту на пользователе
+                map.setCenter(coords, 16);
+                
+                // Рассчитываем пройденную дистанцию
+                if (lastPosition) {
+                    const distance = calculateDistance(
+                        lastPosition[0], lastPosition[1],
+                        coords[0], coords[1]
+                    );
+                    totalDistance += distance;
+                    document.getElementById('distance-walked').textContent = `${Math.round(totalDistance)} м`;
+                }
+                lastPosition = coords;
+                
+                // Отправляем координаты на сервер для проверки
+                await checkLocation(coords);
+                
+            } catch (error) {
+                console.error('Ошибка получения местоположения:', error);
+                showToast('Не удалось получить местоположение');
+            }
+        }
+        
+        async function checkLocation(coords) {
+            try {
+                const response = await fetch('/api/check_location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: tg.initDataUnsafe.user.id,
+                        coords: coords
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.found) {
+                    // Обновляем метку на карте
+                    spots[result.spot_index].options.set('iconImageHref', 'found.png');
+                    
+                    // Показываем уведомление о выигрыше
+                    showToast(result.prize > 0 ? 
+                        `🎉 Найден приз: ${result.prize} ₽!` : 
+                        '🤷‍♂️ Пустая метка');
+                    
+                    // Обновляем UI
+                    updateUI();
+                }
+                
+            } catch (error) {
+                console.error('Ошибка проверки местоположения:', error);
+            }
+        }
+        
+        function updateUI() {
+            if (!gameData) return;
+            
+            const foundCount = gameData.geospots.filter(spot => spot.found).length;
+            const totalCount = gameData.geospots.length;
+            const prizeCount = gameData.geospots.filter(spot => spot.found && spot.has_prize).length;
+            const totalPrize = gameData.geospots
+                .filter(spot => spot.found && spot.has_prize)
+                .reduce((sum, spot) => sum + spot.prize_amount, 0);
+            
+            // Обновляем прогресс
+            document.querySelector('.found-count').textContent = foundCount;
+            document.querySelector('.total-count').textContent = totalCount;
+            document.querySelector('.progress-fill').style.width = `${(foundCount / totalCount) * 100}%`;
+            
+            // Обновляем статистику
+            document.getElementById('prize-count').textContent = prizeCount;
+            document.getElementById('total-prize').textContent = `${totalPrize} ₽`;
+            
+            // Обновляем баланс
+            document.querySelector('.balance').textContent = `${gameData.balance || 0} ₽`;
+            
+            // Обновляем режим игры
+            const modeElement = document.querySelector('.mode');
+            modeElement.textContent = gameData.mode.name;
+            modeElement.className = `mode ${gameData.mode}`;
+        }
+        
+        function updateTimer() {
+            if (!startTime) return;
+            
+            const elapsed = Math.floor((new Date() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            
+            document.getElementById('time-elapsed').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371000; // Радиус Земли в метрах
             const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = 
                 Math.sin(dLat/2) * Math.sin(dLat/2) +
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLng/2) * Math.sin(dLng/2);
+                Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             return R * c;
         }
         
-        // Функция для показа уведомления о найденном кладе
-        function showTreasureFoundNotification(prize, geospotIndex) {
-            const overlay = document.createElement('div');
-            overlay.className = 'treasure-found-overlay';
-            overlay.innerHTML = `
-                <div class="treasure-content">
-                    <div class="celebration">🎉</div>
-                    <h2>Геометка найдена!</h2>
-                    <div class="prize-amount">${prize}₽</div>
-                    <p>Вы нашли геометку #${geospotIndex + 1}</p>
-                    <button style="background: var(--secondary-color); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); margin-top: 16px; font-weight: 600;">
-                        Забрать награду
-                    </button>
-                </div>
-            `;
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
             
-            document.body.appendChild(overlay);
-            
-            // Удаляем оверлей через 5 секунд
             setTimeout(() => {
-                if (document.body.contains(overlay)) {
-                    document.body.removeChild(overlay);
-                }
-            }, 5000);
+                document.body.removeChild(toast);
+            }, 3000);
         }
         
-        // Функция для показа уведомления о пустой геометке
-        function showEmptyGeospotNotification() {
-            const overlay = document.createElement('div');
-            overlay.className = 'treasure-found-overlay';
-            overlay.innerHTML = `
-                <div class="treasure-content">
-                    <div class="celebration">🔍</div>
-                    <h2>Геометка пустая</h2>
-                    <p>К сожалению, эта геометка не содержит приза</p>
-                    <button style="background: var(--secondary-color); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); margin-top: 16px; font-weight: 600;">
-                        Продолжить поиск
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(overlay);
-            
-            // Удаляем оверлей через 5 секунд
-            setTimeout(() => {
-                if (document.body.contains(overlay)) {
-                    document.body.removeChild(overlay);
-                }
-            }, 5000);
-        }
-        
-        // Обработчики для кнопок управления
-        document.getElementById('startLiveLocation').addEventListener('click', () => {
-            if (!userMarker) {
-                alert('Сначала определите ваше местоположение');
-                return;
-            }
-            
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-                this.innerHTML = '<i class="fas fa-satellite"></i><span>Включить трансляцию</span>';
-                trackingStatus.style.display = 'none';
-            } else {
-                startTrackingUser();
-                this.innerHTML = '<i class="fas fa-stop-circle"></i><span>Остановить трансляцию</span>';
-            }
-        });
-        
-        document.getElementById('sendToBot').addEventListener('click', () => {
-            // Отправляем данные о найденных геометках в бот
-            const foundGeospots = geospots.filter(spot => spot.found);
-            
-            if (foundGeospots.length === 0) {
-                alert('Вы еще не нашли ни одной геометки!');
-                return;
-            }
-            
-            const data = {
-                action: 'geospots_found',
-                geospots: foundGeospots.map(spot => ({
-                    id: geospots.indexOf(spot),
-                    prize_amount: spot.prize_amount
-                }))
-            };
-            
-            // Отправляем данные в бот через Telegram Web App
-            Telegram.WebApp.sendData(JSON.stringify(data));
-            alert('Данные отправлены в бот!');
-        });
-        
-        document.getElementById('closeGame').addEventListener('click', () => {
-            if (confirm('Вы уверены, что хотите завершить игру?')) {
-                // Останавливаем отслеживание
-                if (watchId) {
-                    navigator.geolocation.clearWatch(watchId);
-                }
-                
-                // Закрываем мини-приложение
-                Telegram.WebApp.close();
-            }
-        });
-        
-        // Получаем местоположение при загрузке
-        document.addEventListener('DOMContentLoaded', getUserLocation);
-        
-        // Обработка событий панели
-        const panel = document.getElementById('panel');
-        const panelHandle = document.getElementById('panelHandle');
-        
-        panelHandle.addEventListener('click', () => {
-            panel.classList.toggle('expanded');
-            panelBackdrop.classList.toggle('visible');
-            
-            // Если панель открыта, центрируем карту на пользователе
-            if (panel.classList.contains('expanded') && userMarker) {
-                map.setView(userMarker.getLatLng(), 16);
-            }
-        });
-        
-        // Закрытие панели по клику на затемнение
-        panelBackdrop.addEventListener('click', () => {
-            panel.classList.remove('expanded');
-            panelBackdrop.classList.remove('visible');
-        });
-        
-        // Центрирование карта на пользователе
-        document.getElementById('centerMapBtn').addEventListener('click', () => {
-            if (userMarker) {
-                map.setView(userMarker.getLatLng(), 16);
-            } else if (gameCenter) {
-                map.setView(gameCenter, 16);
-            }
-        });
-        
-        // Управление масштабом
-        document.getElementById('zoomInBtn').addEventListener('click', () => {
-            map.zoomIn();
-        });
-        
-        document.getElementById('zoomOutBtn').addEventListener('click', () => {
-            map.zoomOut();
-        });
-        
-        // Повторная попытка получения местоположения
-        document.getElementById('retryLocation').addEventListener('click', getUserLocation);
-        
-        // Обработка выбора радиуса
-        document.querySelectorAll('.radius-option').forEach(option => {
-            option.addEventListener('click', () => {
-                document.querySelectorAll('.radius-option').forEach(opt => opt.classList.remove('active'));
-                option.classList.add('active');
-                
-                currentRadius = parseInt(option.dataset.radius);
-                
-                if (gameCenter) {
-                    createSearchRadius(gameCenter[0], gameCenter[1]);
+        function endGame() {
+            tg.showConfirm('Завершить текущую игру?', (confirmed) => {
+                if (confirmed) {
+                    tg.close();
                 }
             });
-        });
+        }
         
-        // Инициализация Telegram Web App
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
+        // Подключаемся к WebSocket для real-time обновлений
+        const ws = new WebSocket(`wss://your-domain.com/ws/${tg.initDataUnsafe.user.id}`);
         
-        // Остановка отслеживания при закрытии приложения
-        window.addEventListener('beforeunload', () => {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+                case 'spot_found':
+                    // Обновляем конкретную метку
+                    if (spots[data.spot_index]) {
+                        spots[data.spot_index].options.set('iconImageHref', 'found.png');
+                    }
+                    showToast(data.prize > 0 ? 
+                        `🎉 Найден приз: ${data.prize} ₽!` : 
+                        '🤷‍♂️ Пустая метка');
+                    updateUI();
+                    break;
+                    
+                case 'game_completed':
+                    showToast('🎊 Игра завершена! Все метки найдены!');
+                    setTimeout(() => tg.close(), 3000);
+                    break;
             }
-        });
+        };
     </script>
 </body>
 </html>
-                    
- 
