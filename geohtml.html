@@ -331,6 +331,7 @@
         let lastPosition = null;
         let totalDistance = 0;
         let watchId = null;
+        let userInteractedWithMap = false;
         
         // Управление шторкой
         function initBottomSheet() {
@@ -391,6 +392,14 @@
                 center: [55.76, 37.64],
                 zoom: 15,
                 controls: ['zoomControl']
+            });
+            
+            // Слушаем события взаимодействия с картой
+            map.events.add('actionend', function (e) {
+                // Если пользователь двигал карту или изменял масштаб
+                if (e.get('name') === 'drag' || e.get('name') === 'zoom') {
+                    userInteractedWithMap = true;
+                }
             });
             
             // Инициализируем шторку
@@ -551,12 +560,17 @@
                     zIndex: 1000
                 });
                 map.geoObjects.add(userPlacemark);
+                
+                // Первоначально центрируем карту на пользователе
+                map.setCenter(coords, 16);
             } else {
                 userPlacemark.geometry.setCoordinates(coords);
+                
+                // Центрируем карту на пользователе только если не было взаимодействия
+                if (!userInteractedWithMap) {
+                    map.setCenter(coords);
+                }
             }
-            
-            // Центрируем карту на пользователе
-            map.setCenter(coords, 16);
             
             // Рассчитываем пройденную дистанцию
             if (lastPosition) {
@@ -704,4 +718,3 @@
     </script>
 </body>
 </html>
-     
