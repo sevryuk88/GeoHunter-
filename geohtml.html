@@ -28,6 +28,122 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+            display: none;
+        }
+
+        /* Экран выбора режима */
+        .mode-selection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 20;
+            overflow-y: auto;
+        }
+
+        .mode-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .mode-options {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .mode-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .mode-card.selected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .mode-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mode-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .mode-name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .mode-price {
+            margin-left: auto;
+            background: rgba(76, 175, 80, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .mode-details {
+            margin-top: 10px;
+        }
+
+        .mode-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .start-button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .start-button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
 
         /* Шторка */
@@ -41,12 +157,13 @@
             border-radius: 24px 24px 0 0;
             box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
             z-index: 10;
-            transform: translateY(calc(100% - 40px)); /* Показываем только ручку */
+            transform: translateY(calc(100% - 40px));
             transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            display: none;
         }
 
         .bottom-sheet.expanded {
-            transform: translateY(0); /* Поднимаем на весь экран */
+            transform: translateY(0);
         }
 
         .sheet-handle {
@@ -76,6 +193,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease;
+            display: none;
         }
 
         .sheet-backdrop.visible {
@@ -99,16 +217,16 @@
             color: #4CAF50;
         }
 
-        .mode {
+        .mode-badge {
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 14px;
             font-weight: 500;
         }
 
-        .mode.economy { background: #2E7D32; color: white; }
-        .mode.standard { background: #1565C0; color: white; }
-        .mode.premium { background: #7B1FA2; color: white; }
+        .mode-badge.economy { background: #2E7D32; color: white; }
+        .mode-badge.standard { background: #1565C0; color: white; }
+        .mode-badge.premium { background: #7B1FA2; color: white; }
 
         .progress-container {
             margin: 20px 0;
@@ -234,6 +352,80 @@
     </style>
 </head>
 <body>
+    <div class="mode-selection">
+        <h1 class="mode-title">Выберите режим игры</h1>
+        
+        <div class="mode-options">
+            <div class="mode-card" data-mode="economy">
+                <div class="mode-header">
+                    <div class="mode-icon">🟢</div>
+                    <div class="mode-name">Эконом</div>
+                    <div class="mode-price">5 руб.</div>
+                </div>
+                <div class="mode-details">
+                    <div class="mode-detail">
+                        <span>Призы:</span>
+                        <span>3-30 руб.</span>
+                    </div>
+                    <div class="mode-detail">
+                        <span>Радиус поиска:</span>
+                        <span>30 м</span>
+                    </div>
+                    <div class="mode-detail">
+                        <span>Шанс выигрыша:</span>
+                        <span>8%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mode-card" data-mode="standard">
+                <div class="mode-header">
+                    <div class="mode-icon">🔵</div>
+                    <div class="mode-name">Стандарт</div>
+                    <div class="mode-price">10 руб.</div>
+                </div>
+                <div class="mode-details">
+                    <div class="mode-detail">
+                        <span>Призы:</span>
+                        <span>5-50 руб.</span>
+                    </div>
+                    <div class="mode-detail">
+                        <span>Радиус поиска:</span>
+                        <span>50 м</span>
+                    </div>
+                    <div class="mode-detail">
+                        <span>Шанс выигрыша:</span>
+                        <span>15%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mode-card" data-mode="premium">
+                <div class="mode-header">
+                    <div class="mode-icon">🟣</div>
+                    <div class="mode-name">Премиум</div>
+                    <div class="mode-price">15 руб.</div>
+                </div>
+                <div class="mode-details">
+                    <div class="mode-detail">
+                        <span>Призы:</span>
+                        <span>10-100 руб.</span>
+                    </div>
+                    <div class="mode-detail">
+                        <span>Радиус поиска:</span>
+                        <span>70 м</span>
+                    </div>
+                    <div class="mode-detail">
+                        <span>Шанс выигрыша:</span>
+                        <span>22%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="start-button" disabled>Выберите режим</button>
+    </div>
+
     <div id="map"></div>
     <div class="sheet-backdrop"></div>
     
@@ -242,7 +434,7 @@
         <div class="sheet-content">
             <div class="game-info">
                 <div class="balance">0 ₽</div>
-                <div class="mode economy">Эконом</div>
+                <div class="mode-badge economy">Эконом</div>
             </div>
             
             <div class="progress-container">
@@ -287,7 +479,35 @@
             user: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
             money: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==',
             empty: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
-            found: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzRDQUM1MCIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMTAgMTZsNiA2TDI0IDEyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+'
+            found: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgcyBjeT0iMTYiIHI9IjE0IiBmaWxsPSIjNENBQzUwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik0xMCAxNmw2IDZMMjQgMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4='
+        };
+
+        // Режимы игры
+        const GAME_MODES = {
+            'economy': {
+                'name': 'Эконом',
+                'entry_fee': 5,
+                'radius': 30,
+                'min_prize': 3,
+                'max_prize': 30,
+                'win_probability': 0.08
+            },
+            'standard': {
+                'name': 'Стандарт',
+                'entry_fee': 10,
+                'radius': 50,
+                'min_prize': 5,
+                'max_prize': 50,
+                'win_probability': 0.15
+            },
+            'premium': {
+                'name': 'Премиум',
+                'entry_fee': 15,
+                'radius': 70,
+                'min_prize': 10,
+                'max_prize': 100,
+                'win_probability': 0.22
+            }
         };
 
         // Безопасная инициализация Telegram WebApp
@@ -332,6 +552,53 @@
         let totalDistance = 0;
         let watchId = null;
         let userInteractedWithMap = false;
+        let selectedMode = null;
+        
+        // Инициализация выбора режима
+        function initModeSelection() {
+            const modeCards = document.querySelectorAll('.mode-card');
+            const startButton = document.querySelector('.start-button');
+            
+            modeCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // Убираем выделение со всех карточек
+                    modeCards.forEach(c => c.classList.remove('selected'));
+                    // Добавляем выделение выбранной карточке
+                    this.classList.add('selected');
+                    
+                    // Сохраняем выбранный режим
+                    selectedMode = this.dataset.mode;
+                    
+                    // Активируем кнопку начала игры
+                    startButton.disabled = false;
+                    startButton.textContent = 'Начать игру';
+                });
+            });
+            
+            // Обработчик начала игры
+            startButton.addEventListener('click', startGame);
+        }
+        
+        // Начало игры после выбора режима
+        function startGame() {
+            if (!selectedMode) return;
+            
+            // Скрываем экран выбора режима
+            document.querySelector('.mode-selection').style.display = 'none';
+            
+            // Показываем карту и интерфейс игры
+            document.getElementById('map').style.display = 'block';
+            document.querySelector('.bottom-sheet').style.display = 'block';
+            document.querySelector('.sheet-backdrop').style.display = 'block';
+            
+            // Обновляем информацию о режиме в шторке
+            const modeBadge = document.querySelector('.mode-badge');
+            modeBadge.textContent = GAME_MODES[selectedMode].name;
+            modeBadge.className = `mode-badge ${selectedMode}`;
+            
+            // Инициализируем карту
+            ymaps.ready(() => initMap());
+        }
         
         // Управление шторкой
         function initBottomSheet() {
@@ -385,8 +652,6 @@
         }
         
         // Инициализация карты
-        ymaps.ready(initMap);
-        
         function initMap() {
             map = new ymaps.Map('map', {
                 center: [55.76, 37.64],
@@ -419,11 +684,13 @@
         
         // Создание mock-данных для тестирования
         function createMockGameData(center) {
+            const modeConfig = GAME_MODES[selectedMode];
             const geospots = [];
+            
             for (let i = 0; i < 5; i++) {
-                // Генерация случайных координат в радиусе 30 метров
+                // Генерация случайных координат в указанном радиусе
                 const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * 30;
+                const distance = Math.random() * modeConfig.radius;
                 const earthRadius = 6371000;
                 
                 const dx = distance * Math.cos(angle);
@@ -435,19 +702,25 @@
                 const newLat = center[0] + deltaLat;
                 const newLon = center[1] + deltaLon;
                 
+                // Определяем, будет ли приз
+                const has_prize = Math.random() < modeConfig.win_probability;
+                const prize_amount = has_prize ? 
+                    Math.floor(Math.random() * (modeConfig.max_prize - modeConfig.min_prize + 1)) + modeConfig.min_prize : 
+                    0;
+                
                 geospots.push({
                     coords: [newLat, newLon],
-                    has_prize: Math.random() > 0.5,
-                    prize_amount: Math.floor(Math.random() * 30) + 5,
+                    has_prize: has_prize,
+                    prize_amount: prize_amount,
                     found: false
                 });
             }
             
             return {
                 center: center,
-                radius: 30,
+                radius: modeConfig.radius,
                 geospots: geospots,
-                mode: { name: 'Эконом' },
+                mode: { name: modeConfig.name },
                 balance: 100
             };
         }
@@ -664,11 +937,6 @@
             
             // Обновляем баланс
             document.querySelector('.balance').textContent = `${gameData.balance || 0} ₽`;
-            
-            // Обновляем режим игры
-            const modeElement = document.querySelector('.mode');
-            modeElement.textContent = gameData.mode.name;
-            modeElement.className = `mode ${gameData.mode}`;
         }
         
         function updateTimer() {
@@ -715,6 +983,11 @@
                 }
             });
         }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            initModeSelection();
+        });
     </script>
 </body>
 </html>
