@@ -31,6 +31,40 @@
             display: none;
         }
 
+        /* Language switcher */
+        .language-switcher {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .lang-btn.active {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         /* Экран выбора режима */
         .mode-selection {
             position: absolute;
@@ -352,28 +386,33 @@
     </style>
 </head>
 <body>
+    <div class="language-switcher">
+        <button class="lang-btn active" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+
     <div class="mode-selection">
-        <h1 class="mode-title">Выберите режим игры</h1>
+        <h1 class="mode-title" data-i18n="chooseMode">Выберите режим игры</h1>
         
         <div class="mode-options">
             <div class="mode-card" data-mode="economy">
                 <div class="mode-header">
                     <div class="mode-icon">🟢</div>
-                    <div class="mode-name">Эконом</div>
-                    <div class="mode-price">5 руб.</div>
+                    <div class="mode-name" data-i18n="economy">Эконом</div>
+                    <div class="mode-price">3$</div>
                 </div>
                 <div class="mode-details">
                     <div class="mode-detail">
-                        <span>Призы:</span>
-                        <span>3-30 руб.</span>
+                        <span data-i18n="prizes">Призы:</span>
+                        <span>1-10$</span>
                     </div>
                     <div class="mode-detail">
-                        <span>Радиус поиска:</span>
+                        <span data-i18n="searchRadius">Радиус поиска:</span>
                         <span>30 м</span>
                     </div>
                     <div class="mode-detail">
-                        <span>Шанс выигрыша:</span>
-                        <span>8%</span>
+                        <span data-i18n="winChance">Шанс выигрыша:</span>
+                        <span>12%</span>
                     </div>
                 </div>
             </div>
@@ -381,21 +420,21 @@
             <div class="mode-card" data-mode="standard">
                 <div class="mode-header">
                     <div class="mode-icon">🔵</div>
-                    <div class="mode-name">Стандарт</div>
-                    <div class="mode-price">10 руб.</div>
+                    <div class="mode-name" data-i18n="standard">Стандарт</div>
+                    <div class="mode-price">5$</div>
                 </div>
                 <div class="mode-details">
                     <div class="mode-detail">
-                        <span>Призы:</span>
-                        <span>5-50 руб.</span>
+                        <span data-i18n="prizes">Призы:</span>
+                        <span>3-15$</span>
                     </div>
                     <div class="mode-detail">
-                        <span>Радиус поиска:</span>
+                        <span data-i18n="searchRadius">Радиус поиска:</span>
                         <span>50 м</span>
                     </div>
                     <div class="mode-detail">
-                        <span>Шанс выигрыша:</span>
-                        <span>15%</span>
+                        <span data-i18n="winChance">Шанс выигрыша:</span>
+                        <span>18%</span>
                     </div>
                 </div>
             </div>
@@ -403,27 +442,27 @@
             <div class="mode-card" data-mode="premium">
                 <div class="mode-header">
                     <div class="mode-icon">🟣</div>
-                    <div class="mode-name">Премиум</div>
-                    <div class="mode-price">15 руб.</div>
+                    <div class="mode-name" data-i18n="premium">Премиум</div>
+                    <div class="mode-price">7$</div>
                 </div>
                 <div class="mode-details">
                     <div class="mode-detail">
-                        <span>Призы:</span>
-                        <span>10-100 руб.</span>
+                        <span data-i18n="prizes">Призы:</span>
+                        <span>5-20$</span>
                     </div>
                     <div class="mode-detail">
-                        <span>Радиус поиска:</span>
+                        <span data-i18n="searchRadius">Радиус поиска:</span>
                         <span>70 м</span>
                     </div>
                     <div class="mode-detail">
-                        <span>Шанс выигрыша:</span>
-                        <span>22%</span>
+                        <span data-i18n="winChance">Шанс выигрыша:</span>
+                        <span>25%</span>
                     </div>
                 </div>
             </div>
         </div>
         
-        <button class="start-button" disabled>Выберите режим</button>
+        <button class="start-button" disabled data-i18n="selectMode">Выберите режим</button>
     </div>
 
     <div id="map"></div>
@@ -433,13 +472,13 @@
         <div class="sheet-handle"></div>
         <div class="sheet-content">
             <div class="game-info">
-                <div class="balance">0 ₽</div>
-                <div class="mode-badge economy">Эконом</div>
+                <div class="balance">0 $</div>
+                <div class="mode-badge economy" data-i18n="economy">Эконом</div>
             </div>
             
             <div class="progress-container">
                 <div class="progress-header">
-                    <span>Прогресс поиска</span>
+                    <span data-i18n="searchProgress">Прогресс поиска</span>
                     <span><span class="found-count">0</span>/<span class="total-count">5</span></span>
                 </div>
                 <div class="progress-bar">
@@ -450,25 +489,25 @@
             <div class="stats">
                 <div class="stat-card">
                     <div class="stat-value" id="prize-count">0</div>
-                    <div class="stat-label">Найденные призы</div>
+                    <div class="stat-label" data-i18n="prizesFound">Найденные призы</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="total-prize">0 ₽</div>
-                    <div class="stat-label">Сумма выигрыша</div>
+                    <div class="stat-value" id="total-prize">0 $</div>
+                    <div class="stat-label" data-i18n="totalWinnings">Сумма выигрыша</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="time-elapsed">0:00</div>
-                    <div class="stat-label">Время игры</div>
+                    <div class="stat-label" data-i18n="gameTime">Время игры</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="distance-walked">0 м</div>
-                    <div class="stat-label">Пройдено</div>
+                    <div class="stat-label" data-i18n="distanceWalked">Пройдено</div>
                 </div>
             </div>
             
             <div class="controls">
-                <button class="btn btn-secondary" id="btn-location">📍 Обновить позицию</button>
-                <button class="btn btn-primary" id="btn-end">Завершить игру</button>
+                <button class="btn btn-secondary" id="btn-location" data-i18n="updateLocation">📍 Обновить позицию</button>
+                <button class="btn btn-primary" id="btn-end" data-i18n="endGame">Завершить игру</button>
             </div>
         </div>
     </div>
@@ -485,34 +524,79 @@
         // Режимы игры
         const GAME_MODES = {
             'economy': {
-                'name': 'Эконом',
-                'entry_fee': 5,
+                'name': {ru: 'Эконом', en: 'Economy'},
+                'entry_fee': 3,
                 'radius': 30,
-                'min_prize': 3,
-                'max_prize': 30,
-                'win_probability': 0.08
+                'min_prize': 1,
+                'max_prize': 10,
+                'win_probability': 0.12
             },
             'standard': {
-                'name': 'Стандарт',
-                'entry_fee': 10,
+                'name': {ru: 'Стандарт', en: 'Standard'},
+                'entry_fee': 5,
                 'radius': 50,
-                'min_prize': 5,
-                'max_prize': 50,
-                'win_probability': 0.15
+                'min_prize': 3,
+                'max_prize': 15,
+                'win_probability': 0.18
             },
             'premium': {
-                'name': 'Премиум',
-                'entry_fee': 15,
+                'name': {ru: 'Премиум', en: 'Premium'},
+                'entry_fee': 7,
                 'radius': 70,
-                'min_prize': 10,
-                'max_prize': 100,
-                'win_probability': 0.22
+                'min_prize': 5,
+                'max_prize': 20,
+                'win_probability': 0.25
+            }
+        };
+
+        // Переводы
+        const translations = {
+            ru: {
+                chooseMode: "Выберите режим игры",
+                economy: "Эконом",
+                standard: "Стандарт",
+                premium: "Премиум",
+                prizes: "Призы:",
+                searchRadius: "Радиус поиска:",
+                winChance: "Шанс выигрыша:",
+                selectMode: "Выберите режим",
+                searchProgress: "Прогресс поиска",
+                prizesFound: "Найденные призы",
+                totalWinnings: "Сумма выигрыша",
+                gameTime: "Время игры",
+                distanceWalked: "Пройдено",
+                updateLocation: "📍 Обновить позицию",
+                endGame: "Завершить игру",
+                foundPrize: "🎉 Найден приз: {prize}$!",
+                emptySpot: "🤷‍♂️ Пустая метка",
+                gameCompleted: "🎊 Игра завершена! Все метки найдены!"
+            },
+            en: {
+                chooseMode: "Choose game mode",
+                economy: "Economy",
+                standard: "Standard",
+                premium: "Premium",
+                prizes: "Prizes:",
+                searchRadius: "Search radius:",
+                winChance: "Win chance:",
+                selectMode: "Select mode",
+                searchProgress: "Search progress",
+                prizesFound: "Prizes found",
+                totalWinnings: "Total winnings",
+                gameTime: "Game time",
+                distanceWalked: "Distance walked",
+                updateLocation: "📍 Update location",
+                endGame: "End game",
+                foundPrize: "🎉 Found prize: {prize}$!",
+                emptySpot: "🤷‍♂️ Empty spot",
+                gameCompleted: "🎊 Game completed! All spots found!"
             }
         };
 
         // Безопасная инициализация Telegram WebApp
         let tg = null;
         let user_id = null;
+        let currentLanguage = 'ru';
 
         try {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -520,6 +604,10 @@
                 tg.expand();
                 
                 user_id = tg.initDataUnsafe?.user?.id;
+                
+                // Определяем язык пользователя
+                const userLanguage = tg.initDataUnsafe?.user?.language_code || 'en';
+                currentLanguage = userLanguage.startsWith('ru') ? 'ru' : 'en';
             }
         } catch (e) {
             console.warn('Telegram WebApp not available:', e);
@@ -554,6 +642,44 @@
         let userInteractedWithMap = false;
         let selectedMode = null;
         
+        // Функция для установки языка
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Обновляем активную кнопку языка
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.dataset.lang === lang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Обновляем все тексты с атрибутом data-i18n
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            // Обновляем названия режимов
+            document.querySelectorAll('.mode-name').forEach((element, index) => {
+                const mode = ['economy', 'standard', 'premium'][index];
+                if (mode && GAME_MODES[mode].name[lang]) {
+                    element.textContent = GAME_MODES[mode].name[lang];
+                }
+            });
+            
+            // Обновляем режим в шторке
+            if (selectedMode) {
+                const modeBadge = document.querySelector('.mode-badge');
+                if (modeBadge && GAME_MODES[selectedMode].name[lang]) {
+                    modeBadge.textContent = GAME_MODES[selectedMode].name[lang];
+                }
+            }
+        }
+        
         // Инициализация выбора режима
         function initModeSelection() {
             const modeCards = document.querySelectorAll('.mode-card');
@@ -571,12 +697,22 @@
                     
                     // Активируем кнопку начала игры
                     startButton.disabled = false;
-                    startButton.textContent = 'Начать игру';
+                    startButton.textContent = translations[currentLanguage].selectMode;
                 });
             });
             
             // Обработчик начала игры
             startButton.addEventListener('click', startGame);
+            
+            // Обработчики кнопок языка
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    setLanguage(this.dataset.lang);
+                });
+            });
+            
+            // Устанавливаем начальный язык
+            setLanguage(currentLanguage);
         }
         
         // Начало игры после выбора режима
@@ -593,7 +729,7 @@
             
             // Обновляем информацию о режиме в шторке
             const modeBadge = document.querySelector('.mode-badge');
-            modeBadge.textContent = GAME_MODES[selectedMode].name;
+            modeBadge.textContent = GAME_MODES[selectedMode].name[currentLanguage];
             modeBadge.className = `mode-badge ${selectedMode}`;
             
             // Инициализируем карту
@@ -766,7 +902,7 @@
             // Добавляем метки (для тестирования они видны)
             gameData.geospots.forEach((spot, index) => {
                 const placemark = new ymaps.Placemark(spot.coords, {
-                    balloonContent: spot.has_prize ? `Приз: ${spot.prize_amount} руб.` : 'Пустая метка'
+                    balloonContent: spot.has_prize ? `${translations[currentLanguage].prizes.replace(':', '')}: ${spot.prize_amount}$` : translations[currentLanguage].emptySpot
                 }, {
                     iconLayout: 'default#image',
                     iconImageHref: spot.has_prize ? icons.money : icons.empty,
@@ -900,12 +1036,14 @@
                         spots[i].options.set('iconImageHref', icons.found);
                     }
                     
-                    showToast(prize > 0 ? `🎉 Найден приз: ${prize} ₽!` : '🤷‍♂️ Пустая метка');
+                    showToast(prize > 0 ? 
+                        translations[currentLanguage].foundPrize.replace('{prize}', prize) : 
+                        translations[currentLanguage].emptySpot);
                     updateUI();
                     
                     // Проверяем, все ли метки найдены
                     if (gameData.geospots.filter(s => s.found).length === gameData.geospots.length) {
-                        showToast('🎊 Игра завершена! Все метки найдены!');
+                        showToast(translations[currentLanguage].gameCompleted);
                         setTimeout(() => {
                             if (tg && tg.close) tg.close();
                         }, 3000);
@@ -933,10 +1071,10 @@
             
             // Обновляем статистику
             document.getElementById('prize-count').textContent = prizeCount;
-            document.getElementById('total-prize').textContent = `${totalPrize} ₽`;
+            document.getElementById('total-prize').textContent = `${totalPrize} $`;
             
             // Обновляем баланс
-            document.querySelector('.balance').textContent = `${gameData.balance || 0} ₽`;
+            document.querySelector('.balance').textContent = `${gameData.balance || 0} $`;
         }
         
         function updateTimer() {

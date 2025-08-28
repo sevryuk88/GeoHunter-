@@ -46,42 +46,41 @@ logger = logging.getLogger(__name__)
 GAME_MODES = {
     'economy': {
         'name': '🟢 Эконом',
-        'entry_fee': 5,
-        'min_prize': 3,
-        'max_prize': 30,
-        'win_probability': 0.08,  # 8%
+        'entry_fee': 3,
+        'min_prize': 1,
+        'max_prize': 10,
+        'win_probability': 0.12,  # 12%
         'prize_distribution': {
-            3: 0.75,    # 75% chance
-            5: 0.15,    # 15% chance
-            10: 0.07,   # 7% chance
-            30: 0.03    # 3% chance
+            1: 0.60,    # 60% chance
+            3: 0.25,    # 25% chance
+            5: 0.10,    # 10% chance
+            10: 0.05    # 5% chance
         }
     },
     'standard': {
         'name': '🔵 Стандарт',
-        'entry_fee': 10,
-        'min_prize': 5,
-        'max_prize': 50,
-        'win_probability': 0.15,  # 15%
+        'entry_fee': 5,
+        'min_prize': 3,
+        'max_prize': 15,
+        'win_probability': 0.18,  # 18%
         'prize_distribution': {
-            5: 0.55,    # 55% chance
-            10: 0.25,   # 25% chance
-            20: 0.15,   # 15% chance
-            50: 0.05    # 5% chance
+            3: 0.50,    # 50% chance
+            5: 0.25,    # 25% chance
+            10: 0.15,   # 15% chance
+            15: 0.10    # 10% chance
         }
     },
     'premium': {
         'name': '🟣 Премиум',
-        'entry_fee': 15,
-        'min_prize': 10,
-        'max_prize': 100,
-        'win_probability': 0.22,  # 22%
+        'entry_fee': 7,
+        'min_prize': 5,
+        'max_prize': 20,
+        'win_probability': 0.25,  # 25%
         'prize_distribution': {
-            10: 0.50,   # 50% chance
-            15: 0.25,   # 25% chance
-            25: 0.15,   # 15% chance
-            50: 0.07,   # 7% chance
-            100: 0.03   # 3% chance
+            5: 0.45,   # 45% chance
+            10: 0.30,  # 30% chance
+            15: 0.15,  # 15% chance
+            20: 0.10   # 10% chance
         }
     }
 }
@@ -524,13 +523,13 @@ def get_live_location_keyboard():
 
 def get_deposit_keyboard():
     keyboard = [
-        [InlineKeyboardButton("15 руб.", callback_data='deposit_15')],
-        [InlineKeyboardButton("50 руб. (+5 руб. бонус)", callback_data='deposit_50')],
-        [InlineKeyboardButton("100 руб. (+15 руб. бонус)", callback_data='deposit_100')],
+        [InlineKeyboardButton("5$", callback_data='deposit_5')],
+        [InlineKeyboardButton("10$ (+1$ бонус)", callback_data='deposit_10')],
+        [InlineKeyboardButton("20$ (+3$ бонус)", callback_data='deposit_20')],
         [InlineKeyboardButton("🔙 Назад", callback_data='main_menu')],
     ]
     return InlineKeyboardMarkup(keyboard)
-
+    
 # ========== ОБРАБОТЧИКИ ==========
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
@@ -544,9 +543,12 @@ async def start(update: Update, context: CallbackContext) -> None:
         "🌟 Добро пожаловать в GeoHunter! 🌟\n\n"
         "Я помогу тебе найти скрытые сокровища вокруг тебя!\n\n"
         "Доступные режимы игры:\n"
-        f"🟢 Эконом: 5 руб. - призы 3-30 руб.\n"
-        f"🔵 Стандарт: 10 руб. - призы 5-50 руб.\n"
-        f"🟣 Премиум: 15 руб. - призы 10-100 руб.\n\n"
+        #f"🟢 Эконом: 5 руб. - призы 3-30 руб.\n"
+        #f"🔵 Стандарт: 10 руб. - призы 5-50 руб.\n"
+        #f"🟣 Премиум: 15 руб. - призы 10-100 руб.\n\n"
+        f"🟢 Эконом: 3$ - призы 1-10$\n"
+        f"🔵 Стандарт: 5$ - призы 3-15$\n"
+        f"🟣 Премиум: 7$ - призы 5-20$\n\n"
         f"💎 Джекпот: {JACKPOT_POOL} руб. (шанс {JACKPOT_PROBABILITY*100}%)\n\n"
         "Выбери действие:"
     )
@@ -586,12 +588,12 @@ async def choose_mode(update: Update, context: CallbackContext) -> None:
     
     mode_text = (
         "🎮 Выбери режим игры:\n\n"
-        "🟢 Эконом (5 руб.)\n"
-        "   - Призы: 3-30 руб.\n\n"   
-        "🔵 Стандарт (10 руб.)\n"
-        "   - Призы: 5-50 руб.\n\n"   
-        "🟣 Премиум (15 руб.)\n"
-        "   - Призы: 10-100 руб.\n\n"   
+        "🟢 Эконом (3$)\n"
+        "   - Призы: 1-10$\n\n"   
+        "🔵 Стандарт (5$)\n"
+        "   - Призы: 3-15$\n\n"   
+        "🟣 Премиум (7$)\n"
+        "   - Призы: 5-20$\n\n"   
         "💎 Во всех режимах есть шанс выиграть джекпот!"
     )
     
@@ -607,11 +609,11 @@ async def start_game(update: Update, context: CallbackContext, game_mode: str) -
     # Проверяем баланс
     if user.id not in user_balances or user_balances[user.id] < mode_config['entry_fee']:
         payment_text = (
-            f"Для игры в режиме {mode_config['name']} требуется {mode_config['entry_fee']} руб.\n\n"
+            f"Для игры в режиме {mode_config['name']} требуется {mode_config['entry_fee']}$\n\n"
             f"Что вы можете найти:\n"
-            f"• Призы: {mode_config['min_prize']}-{mode_config['max_prize']} руб.\n"
+            f"• Призы: {mode_config['min_prize']}-{mode_config['max_prize']}$\n"
             f"• Шанс выигрыша: {int(mode_config['win_probability'] * 100)}%\n"
-            f"• Джекпот: {JACKPOT_POOL} руб.\n"
+            f"• Джекпот: {JACKPOT_POOL}$\n"
             f"• 5 геометок в радиусе 100 м\n\n"
             "Хотите попробовать удачу?"
         )
@@ -685,23 +687,23 @@ async def process_deposit(update: Update, context: CallbackContext, amount: int)
     await query.answer()
     
     bonus = 0
-    if amount == 50:
-        bonus = 5
-    elif amount == 100:
-        bonus = 15
+    if amount == 10:
+        bonus = 1
+    elif amount == 20:
+        bonus = 3
     
     user_balances[user.id] = user_balances.get(user.id, 0) + amount + bonus
     log_transaction(user.id, amount + bonus, "deposit")
     
     deposit_text = (
-        f"✅ Счет успешно пополнен на {amount} руб.\n"
+        f"✅ Счет успешно пополнен на {amount}$\n"
     )
     
     if bonus > 0:
-        deposit_text += f"🎁 Получен бонус: {bonus} руб.\n"
+        deposit_text += f"🎁 Получен бонус: {bonus}$\n"
     
     deposit_text += (
-        f"💰 Текущий баланс: {user_balances[user.id]} руб.\n"
+        f"💰 Текущий баланс: {user_balances[user.id]}$\n"
     )
     
     keyboard = [
@@ -724,7 +726,7 @@ async def handle_balance(update: Update, context: CallbackContext) -> None:
     games_today = DAILY_STATS.get(date.today(), {}).get(user.id, {}).get('games_played', 0) if date.today() in DAILY_STATS and user.id in DAILY_STATS[date.today()] else 0
     
     balance_text = (
-        f"💰 Ваш баланс: {balance} руб.\n"
+        f"💰 Ваш баланс: {balance}$\n"
         f"📅 Игр сегодня: {games_today}/{RESPONSIBLE_GAMING_LIMITS['daily_games_limit']}\n\n"
         "Доступные режимы:\n"
     )
@@ -741,7 +743,7 @@ async def handle_balance(update: Update, context: CallbackContext) -> None:
     if user_transactions:
         for transaction in user_transactions[-5:]:
             sign = "+" if transaction['amount'] > 0 else ""
-            balance_text += f"• {transaction['date']}: {sign}{transaction['amount']} руб. ({transaction['type']})\n"
+            balance_text += f"• {transaction['date']}: {sign}{transaction['amount']}$ ({transaction['type']})\n"
     else:
         balance_text += "История транзакций пуста\n"
     
@@ -753,7 +755,7 @@ async def handle_balance(update: Update, context: CallbackContext) -> None:
     
     await query.edit_message_text(
         balance_text,
-        reply_mup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def invite_friends(update: Update, context: CallbackContext) -> None:
@@ -1532,74 +1534,7 @@ async def daily_bonus(update: Update, context: CallbackContext) -> None:
         chat_id=update.effective_chat.id,
         text=bonus_text
     )
-"""
-def main() -> None:
-    application = Application.builder().token(TOKEN).build()
 
-    # Регистрация обработчиков
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stats", admin_stats))
-    application.add_handler(CommandHandler("check", force_check))
-    application.add_handler(CommandHandler("jackpot", check_jackpot))
-    application.add_handler(CommandHandler("withdraw", handle_withdraw))
-    application.add_handler(CommandHandler("bonus", daily_bonus))
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    
-    # Обработка геопозиции
-    application.add_handler(MessageHandler(filters.LOCATION, handle_location))
-    
-    # Обработка живой геопозиции
-    application.add_handler(MessageHandler(filters.LOCATION, handle_live_location))
-    
-    # Обработка данных из Web App - ДОБАВЬТЕ ЭТУ СТРОЧКУ
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
-    
-
-    # Запуск бота
-    logger.info("Бот запущен и работает...")
-    application.run_polling()
-
-if __name__ == '__main__':
-    main()
-    
-
-# ... остальной код ...
-
-def main() -> None:
-    # Запускаем FastAPI в отдельном потоке
-    fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
-    fastapi_thread.start()
-    
-    application = Application.builder().token(TOKEN).build()
-
-    # Регистрация обработчиков
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stats", admin_stats))
-    application.add_handler(CommandHandler("check", force_check))
-    application.add_handler(CommandHandler("jackpot", check_jackpot))
-    application.add_handler(CommandHandler("withdraw", handle_withdraw))
-    application.add_handler(CommandHandler("bonus", daily_bonus))
-    application.add_handler(CommandHandler("web", web_interface))  # ПЕРЕМЕСТИЛИ СЮДА
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    
-    # Обработка геопозиции
-    application.add_handler(MessageHandler(filters.LOCATION, handle_location))
-    
-    # Обработка живой геопозиции
-    application.add_handler(MessageHandler(filters.LOCATION, handle_live_location))
-    
-    # Обработка данных из Web App
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
-
-    # Запуск бота
-    logger.info("Бот запущен и работает...")
-    logger.info("FastAPI сервер запущен на порту 8000")
-    application.run_polling()
-
-# ... остальной код ...
-"""
 
 def run_fastapi():
     """Запуск FastAPI сервера в отдельном потоке"""
