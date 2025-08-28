@@ -1,37 +1,55 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoHunter</title>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=752def06-b6ee-4762-a047-ccb35a7c4e6f&lang=ru_RU"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=752def06-b6ee-4762-a047-ccb35a7c4e6f&lang=ru_RU"></script>
     <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #2196F3;
+            --premium: #7B1FA2;
+            --background: #121212;
+            --surface: #1E1E1E;
+            --on-surface: #FFFFFF;
+            --error: #CF6679;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-
+        
         body {
-            overflow: hidden;
+            background: var(--background);
+            color: var(--on-surface);
             height: 100vh;
-            background: #121212;
-            color: white;
+            overflow: hidden;
         }
-
-        #map {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 16px;
+        }
+        
+        .screen {
             display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
         }
-
-        /* Language switcher */
+        
+        .screen.active {
+            display: flex;
+        }
+        
+        /* Language Switcher */
         .language-switcher {
             position: absolute;
             top: 15px;
@@ -44,7 +62,7 @@
             border-radius: 20px;
             backdrop-filter: blur(10px);
         }
-
+        
         .lang-btn {
             background: transparent;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -55,87 +73,112 @@
             font-size: 12px;
             transition: all 0.3s ease;
         }
-
+        
         .lang-btn.active {
             background: rgba(76, 175, 80, 0.3);
-            border-color: #4CAF50;
+            border-color: var(--primary);
         }
-
-        .lang-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* Экран выбора режима */
-        .mode-selection {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        
+        /* Welcome Screen */
+        .welcome-container {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            height: 100%;
+            text-align: center;
             padding: 20px;
-            z-index: 20;
-            overflow-y: auto;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         }
-
-        .mode-title {
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .title {
             font-size: 28px;
             font-weight: bold;
-            margin-bottom: 30px;
-            text-align: center;
-            color: #fff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            margin-bottom: 16px;
         }
-
-        .mode-options {
+        
+        .subtitle {
+            font-size: 16px;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+        
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 8px 0;
             width: 100%;
-            max-width: 400px;
+            max-width: 300px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #2E7D32);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--surface);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-premium {
+            background: linear-gradient(135deg, var(--premium), #6A1B9A);
+            color: white;
+            box-shadow: 0 4px 15px rgba(123, 31, 162, 0.3);
+        }
+        
+        /* Mode Selection */
+        .mode-options {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px 0;
         }
-
+        
         .mode-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
             padding: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid transparent;
         }
-
-        .mode-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
+        
         .mode-card.selected {
-            border-color: #4CAF50;
+            border-color: var(--primary);
             background: rgba(76, 175, 80, 0.1);
         }
-
+        
         .mode-header {
             display: flex;
             align-items: center;
             margin-bottom: 10px;
         }
-
+        
         .mode-icon {
             font-size: 24px;
             margin-right: 10px;
         }
-
+        
         .mode-name {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
         }
-
+        
         .mode-price {
             margin-left: auto;
             background: rgba(76, 175, 80, 0.2);
@@ -143,11 +186,11 @@
             border-radius: 12px;
             font-size: 14px;
         }
-
+        
         .mode-details {
             margin-top: 10px;
         }
-
+        
         .mode-detail {
             display: flex;
             justify-content: space-between;
@@ -155,203 +198,200 @@
             font-size: 14px;
             color: #ccc;
         }
-
-        .start-button {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            color: white;
-            border: none;
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        
+        /* Game Screen */
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
-
-        .start-button:disabled {
-            background: #555;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .start-button:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        }
-
-        /* Шторка */
-        .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 100%;
-            background: #1e1e1e;
-            border-radius: 24px 24px 0 0;
-            box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
-            z-index: 10;
-            transform: translateY(calc(100% - 40px));
-            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            display: none;
-        }
-
-        .bottom-sheet.expanded {
-            transform: translateY(0);
-        }
-
-        .sheet-handle {
-            width: 40px;
-            height: 6px;
-            background: #444;
-            border-radius: 3px;
-            margin: 12px auto;
-            cursor: pointer;
-        }
-
-        .sheet-content {
-            padding: 0 20px 30px;
-            height: calc(100% - 30px);
-            overflow-y: auto;
-        }
-
-        /* Затемнение фона при открытой шторке */
-        .sheet-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 9;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease;
-            display: none;
-        }
-
-        .sheet-backdrop.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Новый дизайн шторки */
-        .game-info {
+        
+        .game-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 10px 0;
-            border-bottom: 1px solid #333;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: 12px;
+            margin-bottom: 16px;
         }
-
+        
         .balance {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
-            color: #4CAF50;
+            color: var(--primary);
         }
-
+        
         .mode-badge {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
         }
-
-        .mode-badge.economy { background: #2E7D32; color: white; }
-        .mode-badge.standard { background: #1565C0; color: white; }
-        .mode-badge.premium { background: #7B1FA2; color: white; }
-
-        .progress-container {
-            margin: 20px 0;
-            background: #252525;
-            padding: 15px;
+        
+        .mode-badge.economy { background: var(--primary); color: white; }
+        .mode-badge.standard { background: var(--secondary); color: white; }
+        .mode-badge.premium { background: var(--premium); color: white; }
+        
+        .map-container {
+            flex: 1;
+            background: #2A2A2A;
             border-radius: 12px;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #aaa;
-        }
-
-        .progress-bar {
-            height: 10px;
-            background: #333;
-            border-radius: 5px;
+            margin-bottom: 16px;
+            position: relative;
             overflow: hidden;
         }
-
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+        
+        .proximity-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            z-index: 2;
+            backdrop-filter: blur(5px);
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #FF6B6B, #FF8E53);
-            border-radius: 5px;
-            transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
-
-        .stats {
+        
+        .game-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        /* Payment Screen */
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px 0;
+        }
+        
+        .payment-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .payment-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .payment-amount {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .payment-bonus {
+            font-size: 14px;
+            color: var(--primary);
+        }
+        
+        /* Stats Screen */
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            margin: 25px 0;
         }
-
+        
         .stat-card {
-            background: #252525;
-            padding: 15px;
+            background: var(--surface);
+            padding: 16px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
-
+        
         .stat-value {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: bold;
             margin-bottom: 4px;
-            color: #FF8E53;
+            color: var(--primary);
         }
-
+        
         .stat-label {
-            font-size: 12px;
+            font-size: 14px;
             color: #aaa;
         }
-
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 25px;
+        
+        /* Results Screen */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
         }
-
-        .btn {
-            padding: 16px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 500;
+        
+        /* Navigation */
+        .nav-back {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             cursor: pointer;
-            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
         }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            color: white;
-            box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
-        }
-
-        .btn-secondary {
-            background: #333;
-            color: white;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
+        
+        /* Toast Notifications */
         .toast {
             position: fixed;
             top: 20px;
@@ -361,170 +401,303 @@
             color: white;
             padding: 15px 25px;
             border-radius: 10px;
-            z-index: 100;
+            z-index: 1000;
             animation: slideIn 0.3s ease;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             text-align: center;
             max-width: 80%;
         }
-
+        
         @keyframes slideIn {
             from { transform: translate(-50%, -20px); opacity: 0; }
             to { transform: translate(-50%, 0); opacity: 1; }
-        }
-
-        /* Анимация пульсации для радиуса */
-        @keyframes pulse {
-            0% { opacity: 0.6; transform: scale(1); }
-            50% { opacity: 0.3; transform: scale(1.05); }
-            100% { opacity: 0.6; transform: scale(1); }
-        }
-
-        .pulse-circle {
-            animation: pulse 2s infinite;
         }
     </style>
 </head>
 <body>
     <div class="language-switcher">
-        <button class="lang-btn active" data-lang="ru">RU</button>
-        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
     </div>
 
-    <div class="mode-selection">
-        <h1 class="mode-title" data-i18n="chooseMode">Выберите режим игры</h1>
-        
-        <div class="mode-options">
-            <div class="mode-card" data-mode="economy">
-                <div class="mode-header">
-                    <div class="mode-icon">🟢</div>
-                    <div class="mode-name" data-i18n="economy">Эконом</div>
-                    <div class="mode-price">3$</div>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div class="screen active" id="welcome-screen">
+            <div class="welcome-container">
+                <div class="logo">🗺️</div>
+                <h1 class="title" data-i18n="welcomeTitle">GeoHunter</h1>
+                <p class="subtitle" data-i18n="welcomeSubtitle">Find hidden treasures around you!</p>
+                
+                <button class="btn btn-primary" id="btn-start" data-i18n="getStarted">Get Started</button>
+                <button class="btn btn-secondary" id="btn-rules" data-i18n="viewRules">View Rules</button>
+            </div>
+        </div>
+
+        <!-- Mode Selection Screen -->
+        <div class="screen" id="mode-screen">
+            <div class="nav-back" onclick="showScreen('welcome-screen')">←</div>
+            
+            <h2 class="title" data-i18n="chooseMode">Choose Game Mode</h2>
+            
+            <div class="mode-options">
+                <div class="mode-card" data-mode="economy">
+                    <div class="mode-header">
+                        <div class="mode-icon">🟢</div>
+                        <div class="mode-name" data-i18n="economy">Economy</div>
+                        <div class="mode-price">3$</div>
+                    </div>
+                    <div class="mode-details">
+                        <div class="mode-detail">
+                            <span data-i18n="prizes">Prizes:</span>
+                            <span>1-10$</span>
+                        </div>
+                        <div class="mode-detail">
+                            <span data-i18n="winChance">Win chance:</span>
+                            <span>12%</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="mode-details">
-                    <div class="mode-detail">
-                        <span data-i18n="prizes">Призы:</span>
-                        <span>1-10$</span>
+                
+                <div class="mode-card" data-mode="standard">
+                    <div class="mode-header">
+                        <div class="mode-icon">🔵</div>
+                        <div class="mode-name" data-i18n="standard">Standard</div>
+                        <div class="mode-price">5$</div>
                     </div>
-                    <div class="mode-detail">
-                        <span data-i18n="searchRadius">Радиус поиска:</span>
-                        <span>30 м</span>
+                    <div class="mode-details">
+                        <div class="mode-detail">
+                            <span data-i18n="prizes">Prizes:</span>
+                            <span>3-15$</span>
+                        </div>
+                        <div class="mode-detail">
+                            <span data-i18n="winChance">Win chance:</span>
+                            <span>18%</span>
+                        </div>
                     </div>
-                    <div class="mode-detail">
-                        <span data-i18n="winChance">Шанс выигрыша:</span>
-                        <span>12%</span>
+                </div>
+                
+                <div class="mode-card" data-mode="premium">
+                    <div class="mode-header">
+                        <div class="mode-icon">🟣</div>
+                        <div class="mode-name" data-i18n="premium">Premium</div>
+                        <div class="mode-price">7$</div>
+                    </div>
+                    <div class="mode-details">
+                        <div class="mode-detail">
+                            <span data-i18n="prizes">Prizes:</span>
+                            <span>5-20$</span>
+                        </div>
+                        <div class="mode-detail">
+                            <span data-i18n="winChance">Win chance:</span>
+                            <span>25%</span>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="mode-card" data-mode="standard">
-                <div class="mode-header">
-                    <div class="mode-icon">🔵</div>
-                    <div class="mode-name" data-i18n="standard">Стандарт</div>
-                    <div class="mode-price">5$</div>
-                </div>
-                <div class="mode-details">
-                    <div class="mode-detail">
-                        <span data-i18n="prizes">Призы:</span>
-                        <span>3-15$</span>
-                    </div>
-                    <div class="mode-detail">
-                        <span data-i18n="searchRadius">Радиус поиска:</span>
-                        <span>50 м</span>
-                    </div>
-                    <div class="mode-detail">
-                        <span data-i18n="winChance">Шанс выигрыша:</span>
-                        <span>18%</span>
-                    </div>
-                </div>
-            </div>
+            <button class="btn btn-primary" id="btn-select-mode" disabled data-i18n="selectMode">Select Mode</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="screen" id="game-screen">
+            <div class="nav-back" onclick="showScreen('mode-screen')">←</div>
             
-            <div class="mode-card" data-mode="premium">
-                <div class="mode-header">
-                    <div class="mode-icon">🟣</div>
-                    <div class="mode-name" data-i18n="premium">Премиум</div>
-                    <div class="mode-price">7$</div>
+            <div class="game-container">
+                <div class="game-header">
+                    <div class="balance" id="game-balance">100 $</div>
+                    <div class="mode-badge economy" id="game-mode-badge" data-i18n="economy">Economy</div>
                 </div>
-                <div class="mode-details">
-                    <div class="mode-detail">
-                        <span data-i18n="prizes">Призы:</span>
-                        <span>5-20$</span>
+                
+                <div class="map-container">
+                    <div id="map"></div>
+                    <div class="map-overlay">
+                        <div data-i18n="geospotsFound">Found: </div>
+                        <span id="found-count">0</span>/<span id="total-count">5</span>
                     </div>
-                    <div class="mode-detail">
-                        <span data-i18n="searchRadius">Радиус поиска:</span>
-                        <span>70 м</span>
+                    <div class="proximity-indicator" id="proximity-indicator">
+                        <div data-i18n="approachingSpot">Approaching geospot</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="proximity-progress" style="width: 0%"></div>
+                        </div>
                     </div>
-                    <div class="mode-detail">
-                        <span data-i18n="winChance">Шанс выигрыша:</span>
-                        <span>25%</span>
-                    </div>
+                </div>
+                
+                <div class="game-controls">
+                    <button class="btn btn-secondary" onclick="updateLocation()" data-i18n="updateLocation">Update Location</button>
+                    <button class="btn btn-primary" onclick="endGame()" data-i18n="endGame">End Game</button>
                 </div>
             </div>
         </div>
-        
-        <button class="start-button" disabled data-i18n="selectMode">Выберите режим</button>
-    </div>
 
-    <div id="map"></div>
-    <div class="sheet-backdrop"></div>
-    
-    <div class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <div class="sheet-content">
-            <div class="game-info">
-                <div class="balance">0 $</div>
-                <div class="mode-badge economy" data-i18n="economy">Эконом</div>
-            </div>
+        <!-- Payment Screen -->
+        <div class="screen" id="payment-screen">
+            <div class="nav-back" onclick="showScreen('welcome-screen')">←</div>
             
-            <div class="progress-container">
-                <div class="progress-header">
-                    <span data-i18n="searchProgress">Прогресс поиска</span>
-                    <span><span class="found-count">0</span>/<span class="total-count">5</span></span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-            </div>
+            <h2 class="title" data-i18n="addFunds">Add Funds</h2>
             
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="prize-count">0</div>
-                    <div class="stat-label" data-i18n="prizesFound">Найденные призы</div>
+            <div class="payment-options">
+                <div class="payment-card">
+                    <div class="payment-amount">5$</div>
+                    <div class="payment-bonus" data-i18n="noBonus">No bonus</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="total-prize">0 $</div>
-                    <div class="stat-label" data-i18n="totalWinnings">Сумма выигрыша</div>
+                
+                <div class="payment-card">
+                    <div class="payment-amount">10$</div>
+                    <div class="payment-bonus" data-i18n="bonus1">+1$ bonus</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="time-elapsed">0:00</div>
-                    <div class="stat-label" data-i18n="gameTime">Время игры</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="distance-walked">0 м</div>
-                    <div class="stat-label" data-i18n="distanceWalked">Пройдено</div>
+                
+                <div class="payment-card">
+                    <div class="payment-amount">20$</div>
+                    <div class="payment-bonus" data-i18n="bonus3">+3$ bonus</div>
                 </div>
             </div>
             
-            <div class="controls">
-                <button class="btn btn-secondary" id="btn-location" data-i18n="updateLocation">📍 Обновить позицию</button>
-                <button class="btn btn-primary" id="btn-end" data-i18n="endGame">Завершить игру</button>
+            <button class="btn btn-primary" data-i18n="addFunds">Add Funds</button>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="screen" id="results-screen">
+            <div class="nav-back" onclick="showScreen('welcome-screen')">←</div>
+            
+            <div class="results-container">
+                <div class="logo">🏆</div>
+                <h2 class="title" data-i18n="gameCompleted">Game Completed!</h2>
+                
+                <div class="stats-grid" style="margin: 20px 0;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="results-found">5/5</div>
+                        <div class="stat-label" data-i18n="geospotsFound">Geospots Found</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-value" id="results-prize">0 $</div>
+                        <div class="stat-label" data-i18n="prizesWon">Prizes Won</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-value" id="results-total">100 $</div>
+                        <div class="stat-label" data-i18n="totalBalance">Total Balance</div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="showScreen('mode-screen')" data-i18n="playAgain">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Rules Screen -->
+        <div class="screen" id="rules-screen">
+            <div class="nav-back" onclick="showScreen('welcome-screen')">←</div>
+            
+            <h2 class="title" data-i18n="gameRules">Game Rules</h2>
+            
+            <div style="overflow-y: auto; padding: 16px;">
+                <ol style="margin-left: 20px; margin-bottom: 20px;">
+                    <li data-i18n="rule1">Choose a game mode and make a deposit</li>
+                    <li data-i18n="rule2">Start the game by sharing your location</li>
+                    <li data-i18n="rule3">5 hidden geospots will be created within 100m radius</li>
+                    <li data-i18n="rule4">Move around and search for the spots</li>
+                    <li data-i18n="rule5">When you approach a spot, you'll get notifications</li>
+                    <li data-i18n="rule6">Find all spots and collect prizes!</li>
+                </ol>
+                
+                <button class="btn btn-primary" onclick="showScreen('welcome-screen')" data-i18n="understand">I Understand</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // Base64 иконки
-        const icons = {
-            user: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
-            money: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==',
-            empty: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
-            found: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgcyBjeT0iMTYiIHI9IjE0IiBmaWxsPSIjNENBQzUwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik0xMCAxNmw2IDZMMjQgMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4='
+     <script>
+        // Translations
+        const translations = {
+            en: {
+                welcomeTitle: "GeoHunter",
+                welcomeSubtitle: "Find hidden treasures around you!",
+                getStarted: "Get Started",
+                viewRules: "View Rules",
+                chooseMode: "Choose Game Mode",
+                economy: "Economy",
+                standard: "Standard",
+                premium: "Premium",
+                prizes: "Prizes:",
+                winChance: "Win chance:",
+                selectMode: "Select Mode",
+                updateLocation: "Update Location",
+                endGame: "End Game",
+                addFunds: "Add Funds",
+                noBonus: "No bonus",
+                bonus1: "+1$ bonus",
+                bonus3: "+3$ bonus",
+                statistics: "Statistics",
+                gamesPlayed: "Games Played",
+                prizesWon: "Prizes Won",
+                totalWinnings: "Total Winnings",
+                timePlayed: "Time Played",
+                backToMenu: "Back to Menu",
+                gameRules: "Game Rules",
+                rule1: "Choose a game mode and make a deposit",
+                rule2: "Start the game by sharing your location",
+                rule3: "5 hidden geospots will be created within 100m radius",
+                rule4: "Move around and search for the spots",
+                rule5: "When you approach a spot, you'll get notifications",
+                rule6: "Find all spots and collect prizes!",
+                understand: "I Understand",
+                mapLoading: "Map will be displayed here",
+                geospotsFound: "Found:",
+                approachingSpot: "Approaching geospot",
+                foundPrize: "🎉 Found prize: {prize}$!",
+                emptySpot: "🤷‍♂️ Empty spot",
+                gameCompleted: "🎊 Game completed! All spots found!",
+                gameCompletedTitle: "Game Completed!",
+                playAgain: "Play Again",
+                totalBalance: "Total Balance"
+            },
+            ru: {
+                welcomeTitle: "GeoHunter",
+                welcomeSubtitle: "Найди скрытые сокровища вокруг себя!",
+                getStarted: "Начать",
+                viewRules: "Правила",
+                chooseMode: "Выберите режим игры",
+                economy: "Эконом",
+                standard: "Стандарт",
+                premium: "Премиум",
+                prizes: "Призы:",
+                winChance: "Шанс выигрыша:",
+                selectMode: "Выбрать режим",
+                updateLocation: "Обновить позицию",
+                endGame: "Завершить игру",
+                addFunds: "Пополнить счет",
+                noBonus: "Без бонуса",
+                bonus1: "+1$ бонус",
+                bonus3: "+3$ бонус",
+                statistics: "Статистика",
+                gamesPlayed: "Сыграно игр",
+                prizesWon: "Выиграно призов",
+                totalWinnings: "Общий выигрыш",
+                timePlayed: "Время игры",
+                backToMenu: "В меню",
+                gameRules: "Правила игры",
+                rule1: "Выберите режим игры и внесите депозит",
+                rule2: "Запустите игру, отправив свою геопозицию",
+                rule3: "5 скрытых геометок будут созданы в радиусе 100м",
+                rule4: "Перемещайтесь и ищите метки",
+                rule5: "При приближении к метке вы получите уведомления",
+                rule6: "Найдите все метки и соберите призы!",
+                understand: "Понятно",
+                mapLoading: "Здесь будет отображаться карта",
+                geospotsFound: "Найдено:",
+                approachingSpot: "Приближаетесь к геометке",
+                foundPrize: "🎉 Найден приз: {prize}$!",
+                emptySpot: "🤷‍♂️ Пустая метка",
+                gameCompleted: "🎊 Игра завершена! Все метки найдены!",
+                gameCompletedTitle: "Игра Завершена!",
+                playAgain: "Играть снова",
+                totalBalance: "Общий баланс"
+            }
         };
 
-        // Режимы игры
+        // Game modes configuration
         const GAME_MODES = {
             'economy': {
-                'name': {ru: 'Эконом', en: 'Economy'},
+                'name': {en: 'Economy', ru: 'Эконом'},
                 'entry_fee': 3,
                 'radius': 30,
                 'min_prize': 1,
@@ -532,7 +705,7 @@
                 'win_probability': 0.12
             },
             'standard': {
-                'name': {ru: 'Стандарт', en: 'Standard'},
+                'name': {en: 'Standard', ru: 'Стандарт'},
                 'entry_fee': 5,
                 'radius': 50,
                 'min_prize': 3,
@@ -540,7 +713,7 @@
                 'win_probability': 0.18
             },
             'premium': {
-                'name': {ru: 'Премиум', en: 'Premium'},
+                'name': {en: 'Premium', ru: 'Премиум'},
                 'entry_fee': 7,
                 'radius': 70,
                 'min_prize': 5,
@@ -549,104 +722,62 @@
             }
         };
 
-        // Переводы
-        const translations = {
-            ru: {
-                chooseMode: "Выберите режим игры",
-                economy: "Эконом",
-                standard: "Стандарт",
-                premium: "Премиум",
-                prizes: "Призы:",
-                searchRadius: "Радиус поиска:",
-                winChance: "Шанс выигрыша:",
-                selectMode: "Выберите режим",
-                searchProgress: "Прогресс поиска",
-                prizesFound: "Найденные призы",
-                totalWinnings: "Сумма выигрыша",
-                gameTime: "Время игры",
-                distanceWalked: "Пройдено",
-                updateLocation: "📍 Обновить позицию",
-                endGame: "Завершить игру",
-                foundPrize: "🎉 Найден приз: {prize}$!",
-                emptySpot: "🤷‍♂️ Пустая метка",
-                gameCompleted: "🎊 Игра завершена! Все метки найдены!"
-            },
-            en: {
-                chooseMode: "Choose game mode",
-                economy: "Economy",
-                standard: "Standard",
-                premium: "Premium",
-                prizes: "Prizes:",
-                searchRadius: "Search radius:",
-                winChance: "Win chance:",
-                selectMode: "Select mode",
-                searchProgress: "Search progress",
-                prizesFound: "Prizes found",
-                totalWinnings: "Total winnings",
-                gameTime: "Game time",
-                distanceWalked: "Distance walked",
-                updateLocation: "📍 Update location",
-                endGame: "End game",
-                foundPrize: "🎉 Found prize: {prize}$!",
-                emptySpot: "🤷‍♂️ Empty spot",
-                gameCompleted: "🎊 Game completed! All spots found!"
-            }
+        // Game state
+        let currentLanguage = 'en';
+        let selectedMode = null;
+        let gameState = {
+            balance: 100,
+            mode: null,
+            center: null,
+            geospots: [],
+            foundSpots: [],
+            gameActive: false,
+            userMarker: null,
+            map: null,
+            watchId: null
         };
 
-        // Безопасная инициализация Telegram WebApp
-        let tg = null;
-        let user_id = null;
-        let currentLanguage = 'ru';
+        // Initialize the app
+        function initApp() {
+            // Set up language switcher
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    setLanguage(this.dataset.lang);
+                });
+            });
 
-        try {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                tg.expand();
-                
-                user_id = tg.initDataUnsafe?.user?.id;
-                
-                // Определяем язык пользователя
-                const userLanguage = tg.initDataUnsafe?.user?.language_code || 'en';
-                currentLanguage = userLanguage.startsWith('ru') ? 'ru' : 'en';
-            }
-        } catch (e) {
-            console.warn('Telegram WebApp not available:', e);
+            // Set up navigation
+            document.getElementById('btn-start').addEventListener('click', function() {
+                showScreen('mode-screen');
+            });
+
+            document.getElementById('btn-rules').addEventListener('click', function() {
+                showScreen('rules-screen');
+            });
+
+            // Set up mode selection
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedMode = this.dataset.mode;
+                    document.getElementById('btn-select-mode').disabled = false;
+                });
+            });
+
+            document.getElementById('btn-select-mode').addEventListener('click', function() {
+                startGame();
+            });
+
+            // Set initial language
+            setLanguage(currentLanguage);
         }
 
-        // Если не в Telegram, используем параметры URL для тестирования
-        if (!user_id) {
-            const urlParams = new URLSearchParams(window.location.search);
-            user_id = urlParams.get('user_id') || 'test_user_' + Math.random().toString(36).substring(2, 9);
-            
-            // Создаем заглушку для tg
-            tg = {
-                close: function() {
-                    alert('В реальном Telegram приложении здесь закрылось бы окно');
-                },
-                showConfirm: function(message, callback) {
-                    if (confirm(message)) {
-                        callback(true);
-                    } else {
-                        callback(false);
-                    }
-                }
-            };
-        }
-
-        let map, userPlacemark, circle, spots = [];
-        let gameData = null;
-        let startTime = null;
-        let lastPosition = null;
-        let totalDistance = 0;
-        let watchId = null;
-        let userInteractedWithMap = false;
-        let selectedMode = null;
-        
-        // Функция для установки языка
+        // Change language
         function setLanguage(lang) {
             currentLanguage = lang;
             
-            // Обновляем активную кнопку языка
+            // Update active button
             document.querySelectorAll('.lang-btn').forEach(btn => {
                 if (btn.dataset.lang === lang) {
                     btn.classList.add('active');
@@ -655,300 +786,195 @@
                 }
             });
             
-            // Обновляем все тексты с атрибутом data-i18n
+            // Update all translatable elements
             document.querySelectorAll('[data-i18n]').forEach(element => {
                 const key = element.getAttribute('data-i18n');
                 if (translations[lang][key]) {
                     element.textContent = translations[lang][key];
                 }
             });
-            
-            // Обновляем названия режимов
-            document.querySelectorAll('.mode-name').forEach((element, index) => {
-                const mode = ['economy', 'standard', 'premium'][index];
-                if (mode && GAME_MODES[mode].name[lang]) {
-                    element.textContent = GAME_MODES[mode].name[lang];
-                }
+        }
+
+        // Show specific screen
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
             });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Get mode price
+        function getModePrice(mode) {
+            const prices = {
+                'economy': 3,
+                'standard': 5,
+                'premium': 7
+            };
+            return prices[mode] || 0;
+        }
+
+        // Start game
+        function startGame() {
+            if (gameState.balance < getModePrice(selectedMode)) {
+                showScreen('payment-screen');
+                return;
+            }
             
-            // Обновляем режим в шторке
-            if (selectedMode) {
-                const modeBadge = document.querySelector('.mode-badge');
-                if (modeBadge && GAME_MODES[selectedMode].name[lang]) {
-                    modeBadge.textContent = GAME_MODES[selectedMode].name[lang];
-                }
+            // Deduct game cost
+            gameState.balance -= getModePrice(selectedMode);
+            updateBalance();
+            
+            gameState.mode = selectedMode;
+            gameState.foundSpots = [];
+            gameState.gameActive = true;
+            
+            // Update UI
+            document.getElementById('game-mode-badge').textContent = translations[currentLanguage][selectedMode];
+            document.getElementById('game-mode-badge').className = `mode-badge ${selectedMode}`;
+            document.getElementById('total-count').textContent = '5';
+            document.getElementById('found-count').textContent = '0';
+            
+            showScreen('game-screen');
+            initGame();
+        }
+
+        // Initialize game
+        function initGame() {
+            // Request user location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const coords = [position.coords.latitude, position.coords.longitude];
+                        gameState.center = coords;
+                        setupMap(coords);
+                        generateGeospots();
+                        startLocationTracking();
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        // Use default coordinates (Moscow)
+                        gameState.center = [55.7558, 37.6173];
+                        setupMap(gameState.center);
+                        generateGeospots();
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                alert('Geolocation is not supported by this browser.');
             }
         }
-        
-        // Инициализация выбора режима
-        function initModeSelection() {
-            const modeCards = document.querySelectorAll('.mode-card');
-            const startButton = document.querySelector('.start-button');
-            
-            modeCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    // Убираем выделение со всех карточек
-                    modeCards.forEach(c => c.classList.remove('selected'));
-                    // Добавляем выделение выбранной карточке
-                    this.classList.add('selected');
-                    
-                    // Сохраняем выбранный режим
-                    selectedMode = this.dataset.mode;
-                    
-                    // Активируем кнопку начала игры
-                    startButton.disabled = false;
-                    startButton.textContent = translations[currentLanguage].selectMode;
+
+        // Setup map
+        function setupMap(center) {
+            ymaps.ready(() => {
+                gameState.map = new ymaps.Map('map', {
+                    center: center,
+                    zoom: 16,
+                    controls: ['zoomControl']
                 });
-            });
-            
-            // Обработчик начала игры
-            startButton.addEventListener('click', startGame);
-            
-            // Обработчики кнопок языка
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    setLanguage(this.dataset.lang);
+                
+                // Add user marker
+                gameState.userMarker = new ymaps.Placemark(center, {}, {
+                    iconLayout: 'default#image',
+                    iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
+                    iconImageSize: [40, 40],
+                    iconImageOffset: [-20, -20],
+                    zIndex: 1000
                 });
-            });
-            
-            // Устанавливаем начальный язык
-            setLanguage(currentLanguage);
-        }
-        
-        // Начало игры после выбора режима
-        function startGame() {
-            if (!selectedMode) return;
-            
-            // Скрываем экран выбора режима
-            document.querySelector('.mode-selection').style.display = 'none';
-            
-            // Показываем карту и интерфейс игры
-            document.getElementById('map').style.display = 'block';
-            document.querySelector('.bottom-sheet').style.display = 'block';
-            document.querySelector('.sheet-backdrop').style.display = 'block';
-            
-            // Обновляем информацию о режиме в шторке
-            const modeBadge = document.querySelector('.mode-badge');
-            modeBadge.textContent = GAME_MODES[selectedMode].name[currentLanguage];
-            modeBadge.className = `mode-badge ${selectedMode}`;
-            
-            // Инициализируем карту
-            ymaps.ready(() => initMap());
-        }
-        
-        // Управление шторкой
-        function initBottomSheet() {
-            const sheet = document.querySelector('.bottom-sheet');
-            const handle = document.querySelector('.sheet-handle');
-            const backdrop = document.querySelector('.sheet-backdrop');
-            
-            // Обработчик для открытия/закрытия по клику на ручку
-            handle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                sheet.classList.toggle('expanded');
-                backdrop.classList.toggle('visible');
-            });
-            
-            // Закрытие по клику на бэкдроп
-            backdrop.addEventListener('click', function() {
-                sheet.classList.remove('expanded');
-                backdrop.classList.remove('visible');
-            });
-            
-            // Свайп-жесты для мобильных устройств
-            let startY = 0;
-            let currentY = 0;
-            let isDragging = false;
-            
-            sheet.addEventListener('touchstart', function(e) {
-                startY = e.touches[0].clientY;
-                isDragging = true;
-            }, { passive: true });
-            
-            sheet.addEventListener('touchmove', function(e) {
-                if (!isDragging) return;
                 
-                currentY = e.touches[0].clientY;
-                const diff = currentY - startY;
+                gameState.map.geoObjects.add(gameState.userMarker);
                 
-                if (diff < 0 && !sheet.classList.contains('expanded')) {
-                    // Свайп вверх - открываем шторку
-                    sheet.classList.add('expanded');
-                    backdrop.classList.add('visible');
-                } else if (diff > 50 && sheet.classList.contains('expanded')) {
-                    // Свайп вниз - закрываем шторку
-                    sheet.classList.remove('expanded');
-                    backdrop.classList.remove('visible');
-                }
-            }, { passive: true });
-            
-            sheet.addEventListener('touchend', function() {
-                isDragging = false;
-            }, { passive: true });
-        }
-        
-        // Инициализация карты
-        function initMap() {
-            map = new ymaps.Map('map', {
-                center: [55.76, 37.64],
-                zoom: 15,
-                controls: ['zoomControl']
+                // Add search radius circle
+                const circle = new ymaps.Circle([
+                    center,
+                    GAME_MODES[gameState.mode].radius
+                ], {}, {
+                    fillColor: "rgba(33, 150, 243, 0.2)",
+                    strokeColor: "#2196F3",
+                    strokeOpacity: 0.8,
+                    strokeWidth: 2
+                });
+                
+                gameState.map.geoObjects.add(circle);
             });
-            
-            // Слушаем события взаимодействия с картой
-            map.events.add('actionend', function (e) {
-                // Если пользователь двигал карту или изменял масштаб
-                if (e.get('name') === 'drag' || e.get('name') === 'zoom') {
-                    userInteractedWithMap = true;
-                }
-            });
-            
-            // Инициализируем шторку
-            initBottomSheet();
-            
-            // Обработчики кнопок
-            document.getElementById('btn-location').addEventListener('click', updateLocation);
-            document.getElementById('btn-end').addEventListener('click', endGame);
-            
-            // Запускаем таймер
-            startTime = new Date();
-            setInterval(updateTimer, 1000);
-            
-            // Запрос данных игры
-            fetchGameData();
         }
-        
-        // Создание mock-данных для тестирования
-        function createMockGameData(center) {
-            const modeConfig = GAME_MODES[selectedMode];
-            const geospots = [];
+
+        // Generate geospots
+        function generateGeospots() {
+            const modeConfig = GAME_MODES[gameState.mode];
+            gameState.geospots = [];
             
             for (let i = 0; i < 5; i++) {
-                // Генерация случайных координат в указанном радиусе
+                // Generate random coordinates within radius
                 const angle = Math.random() * Math.PI * 2;
                 const distance = Math.random() * modeConfig.radius;
-                const earthRadius = 6371000;
+                const earthRadius = 6371000; // Earth radius in meters
                 
                 const dx = distance * Math.cos(angle);
                 const dy = distance * Math.sin(angle);
                 
                 const deltaLat = (dy / earthRadius) * (180 / Math.PI);
-                const deltaLon = (dx / (earthRadius * Math.cos(Math.PI * center[0] / 180))) * (180 / Math.PI);
+                const deltaLon = (dx / (earthRadius * Math.cos(Math.PI * gameState.center[0] / 180))) * (180 / Math.PI);
                 
-                const newLat = center[0] + deltaLat;
-                const newLon = center[1] + deltaLon;
+                const newLat = gameState.center[0] + deltaLat;
+                const newLon = gameState.center[1] + deltaLon;
                 
-                // Определяем, будет ли приз
-                const has_prize = Math.random() < modeConfig.win_probability;
-                const prize_amount = has_prize ? 
+                // Determine if this spot has a prize
+                const hasPrize = Math.random() < modeConfig.win_probability;
+                const prizeAmount = hasPrize ? 
                     Math.floor(Math.random() * (modeConfig.max_prize - modeConfig.min_prize + 1)) + modeConfig.min_prize : 
                     0;
                 
-                geospots.push({
+                gameState.geospots.push({
+                    id: i,
                     coords: [newLat, newLon],
-                    has_prize: has_prize,
-                    prize_amount: prize_amount,
-                    found: false
+                    hasPrize: hasPrize,
+                    prizeAmount: prizeAmount,
+                    found: false,
+                    marker: null
                 });
             }
             
-            return {
-                center: center,
-                radius: modeConfig.radius,
-                geospots: geospots,
-                mode: { name: modeConfig.name },
-                balance: 100
-            };
+            // Add markers to map
+            addGeospotsToMap();
         }
-        
-        async function fetchGameData() {
-            try {
-                // Получаем данные игры с бэкенда
-                const response = await fetch(`https://sevryuk88.github.io/GeoHunter-/api/game/${user_id}`);
-                if (!response.ok) throw new Error('Network response was not ok');
-                gameData = await response.json();
-            } catch (error) {
-                console.error('Ошибка загрузки данных, используем mock данные:', error);
-                // Получаем текущее местоположение для mock-данных
-                try {
-                    const position = await getCurrentPosition();
-                    const coords = [position.coords.latitude, position.coords.longitude];
-                    gameData = createMockGameData(coords);
-                } catch (err) {
-                    // Если не удалось получить местоположение, используем центр по умолчанию
-                    gameData = createMockGameData([55.76, 37.64]);
-                }
-            }
-            
-            // Устанавливаем центр карты
-            map.setCenter(gameData.center, 16);
-            
-            // Создаем круг радиуса с пульсацией
-            circle = new ymaps.Circle([
-                gameData.center,
-                gameData.radius
-            ], {}, {
-                fillColor: "rgba(33, 150, 243, 0.2)",
-                strokeColor: "#2196F3",
-                strokeOpacity: 0.8,
-                strokeWidth: 2
-            });
-            
-            // Добавляем класс для анимации пульсации
-            circle.options.set('className', 'pulse-circle');
-            
-            map.geoObjects.add(circle);
-            
-            // Добавляем метки (для тестирования они видны)
-            gameData.geospots.forEach((spot, index) => {
+
+        // Add geospots to map
+        function addGeospotsToMap() {
+            gameState.geospots.forEach(spot => {
                 const placemark = new ymaps.Placemark(spot.coords, {
-                    balloonContent: spot.has_prize ? `${translations[currentLanguage].prizes.replace(':', '')}: ${spot.prize_amount}$` : translations[currentLanguage].emptySpot
+                    balloonContent: spot.hasPrize ? 
+                        `${translations[currentLanguage].prizes.replace(':', '')}: ${spot.prizeAmount}$` : 
+                        translations[currentLanguage].emptySpot
                 }, {
                     iconLayout: 'default#image',
-                    iconImageHref: spot.has_prize ? icons.money : icons.empty,
+                    iconImageHref: spot.hasPrize ? 
+                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
+                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
                     iconImageSize: [32, 32],
                     iconImageOffset: [-16, -16],
                     zIndex: spot.found ? 100 : 10
                 });
                 
-                map.geoObjects.add(placemark);
-                spots.push(placemark);
-                
-                // Если метка найдена, отмечаем это
-                if (spot.found) {
-                    placemark.options.set('iconImageHref', icons.found);
-                }
-            });
-            
-            // Обновляем UI
-            updateUI();
-            
-            // Запускаем отслеживание местоположения
-            startWatchingLocation();
-        }
-        
-        function getCurrentPosition() {
-            return new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                });
+                spot.marker = placemark;
+                gameState.map.geoObjects.add(placemark);
             });
         }
-        
-        function startWatchingLocation() {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
+
+        // Start location tracking
+        function startLocationTracking() {
+            if (gameState.watchId) {
+                navigator.geolocation.clearWatch(gameState.watchId);
             }
             
-            watchId = navigator.geolocation.watchPosition(
+            gameState.watchId = navigator.geolocation.watchPosition(
                 position => {
                     const coords = [position.coords.latitude, position.coords.longitude];
                     updateUserPosition(coords);
+                    checkProximity(coords);
                 },
                 error => {
-                    console.error('Ошибка отслеживания местоположения:', error);
+                    console.error('Geolocation error:', error);
                 },
                 {
                     enableHighAccuracy: true,
@@ -957,149 +983,176 @@
                 }
             );
         }
-        
+
+        // Update user position
         function updateUserPosition(coords) {
-            // Обновляем позицию пользователя на карте
-            if (!userPlacemark) {
-                userPlacemark = new ymaps.Placemark(coords, {}, {
-                    iconLayout: 'default#image',
-                    iconImageHref: icons.user,
-                    iconImageSize: [40, 40],
-                    iconImageOffset: [-20, -20],
-                    zIndex: 1000
-                });
-                map.geoObjects.add(userPlacemark);
-                
-                // Первоначально центрируем карту на пользователе
-                map.setCenter(coords, 16);
-            } else {
-                userPlacemark.geometry.setCoordinates(coords);
-                
-                // Центрируем карту на пользователе только если не было взаимодействия
-                if (!userInteractedWithMap) {
-                    map.setCenter(coords);
-                }
+            if (gameState.userMarker) {
+                gameState.userMarker.geometry.setCoordinates(coords);
             }
             
-            // Рассчитываем пройденную дистанцию
-            if (lastPosition) {
-                const distance = calculateDistance(
-                    lastPosition[0], lastPosition[1],
-                    coords[0], coords[1]
-                );
-                totalDistance += distance;
-                document.getElementById('distance-walked').textContent = `${Math.round(totalDistance)} м`;
-            }
-            lastPosition = coords;
-            
-            // Проверяем близость к меткам
-            checkLocationMock(coords);
-        }
-        
-        async function updateLocation() {
-            try {
-                // Запрашиваем текущее местоположение
-                const position = await getCurrentPosition();
-                const coords = [position.coords.latitude, position.coords.longitude];
-                updateUserPosition(coords);
-            } catch (error) {
-                console.error('Ошибка получения местоположения:', error);
-                showToast('Не удалось получить местоположение');
+            // Center map on user
+            if (gameState.map) {
+                gameState.map.setCenter(coords);
             }
         }
-        
-        function checkLocationMock(coords) {
-            if (!gameData || !gameData.geospots) return;
+
+        // Check proximity to geospots
+        function checkProximity(userCoords) {
+            let closestDistance = Infinity;
+            let closestSpot = null;
             
-            for (let i = 0; i < gameData.geospots.length; i++) {
-                const spot = gameData.geospots[i];
-                if (spot.found) continue;
+            gameState.geospots.forEach(spot => {
+                if (spot.found) return;
                 
                 const distance = calculateDistance(
-                    coords[0], coords[1],
+                    userCoords[0], userCoords[1],
                     spot.coords[0], spot.coords[1]
                 );
                 
-                if (distance <= 10) { // 10 метров для нахождения
-                    spot.found = true;
-                    gameData.found_spots = gameData.found_spots || [];
-                    gameData.found_spots.push(spot);
-                    
-                    let prize = 0;
-                    if (spot.has_prize) {
-                        prize = spot.prize_amount;
-                        gameData.balance += prize;
-                    }
-                    
-                    // Обновляем метку на карте
-                    if (spots[i]) {
-                        spots[i].options.set('iconImageHref', icons.found);
-                    }
-                    
-                    showToast(prize > 0 ? 
-                        translations[currentLanguage].foundPrize.replace('{prize}', prize) : 
-                        translations[currentLanguage].emptySpot);
-                    updateUI();
-                    
-                    // Проверяем, все ли метки найдены
-                    if (gameData.geospots.filter(s => s.found).length === gameData.geospots.length) {
-                        showToast(translations[currentLanguage].gameCompleted);
-                        setTimeout(() => {
-                            if (tg && tg.close) tg.close();
-                        }, 3000);
-                    }
-                    
-                    break;
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestSpot = spot;
                 }
+                
+                // Check if we're close enough to "find" the spot
+                if (distance <= 10) { // 10 meters
+                    foundGeospot(spot);
+                }
+            });
+            
+            // Show proximity indicator
+            if (closestSpot && closestDistance <= 50) {
+                const progress = Math.max(0, 100 - (closestDistance / 50) * 100);
+                showProximityIndicator(progress);
+            } else {
+                hideProximityIndicator();
             }
         }
-        
-        function updateUI() {
-            if (!gameData) return;
+
+        // Show proximity indicator
+        function showProximityIndicator(progress) {
+            const indicator = document.getElementById('proximity-indicator');
+            const progressBar = document.getElementById('proximity-progress');
             
-            const foundCount = gameData.geospots.filter(spot => spot.found).length;
-            const totalCount = gameData.geospots.length;
-            const prizeCount = gameData.geospots.filter(spot => spot.found && spot.has_prize).length;
-            const totalPrize = gameData.geospots
-                .filter(spot => spot.found && spot.has_prize)
-                .reduce((sum, spot) => sum + spot.prize_amount, 0);
-            
-            // Обновляем прогресс
-            document.querySelector('.found-count').textContent = foundCount;
-            document.querySelector('.total-count').textContent = totalCount;
-            document.querySelector('.progress-fill').style.width = `${(foundCount / totalCount) * 100}%`;
-            
-            // Обновляем статистику
-            document.getElementById('prize-count').textContent = prizeCount;
-            document.getElementById('total-prize').textContent = `${totalPrize} $`;
-            
-            // Обновляем баланс
-            document.querySelector('.balance').textContent = `${gameData.balance || 0} $`;
+            indicator.style.display = 'block';
+            progressBar.style.width = `${progress}%`;
         }
-        
-        function updateTimer() {
-            if (!startTime) return;
-            
-            const elapsed = Math.floor((new Date() - startTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            
-            document.getElementById('time-elapsed').textContent = 
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Hide proximity indicator
+        function hideProximityIndicator() {
+            const indicator = document.getElementById('proximity-indicator');
+            indicator.style.display = 'none';
         }
-        
+
+        // Handle found geospot
+        function foundGeospot(spot) {
+            if (spot.found) return;
+            
+            spot.found = true;
+            gameState.foundSpots.push(spot);
+            
+            // Update marker
+            if (spot.marker) {
+                spot.marker.options.set('iconImageHref', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgcyBjeT0iMTYiIHI9IjE0IiBmaWxsPSIjNENBQzUwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik0xMCAxNmw2IDZMMjQgMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=');
+            }
+            
+            // Award prize
+            if (spot.hasPrize) {
+                gameState.balance += spot.prizeAmount;
+                updateBalance();
+                
+                // Show notification
+                showToast(translations[currentLanguage].foundPrize.replace('{prize}', spot.prizeAmount));
+            } else {
+                showToast(translations[currentLanguage].emptySpot);
+            }
+            
+            // Update counter
+            updateFoundCounter();
+            
+            // Check if game is complete
+            if (gameState.foundSpots.length === gameState.geospots.length) {
+                endGame(true);
+            }
+        }
+
+        // Update found counter
+        function updateFoundCounter() {
+            document.getElementById('found-count').textContent = gameState.foundSpots.length;
+            document.getElementById('results-found').textContent = `${gameState.foundSpots.length}/5`;
+        }
+
+        // Update balance
+        function updateBalance() {
+            document.getElementById('game-balance').textContent = gameState.balance + ' $';
+            document.getElementById('results-total').textContent = gameState.balance + ' $';
+        }
+
+        // Calculate total prize
+        function calculateTotalPrize() {
+            return gameState.foundSpots
+                .filter(spot => spot.hasPrize)
+                .reduce((sum, spot) => sum + spot.prizeAmount, 0);
+        }
+
+        // End game
+        function endGame(isComplete = false) {
+            if (gameState.watchId) {
+                navigator.geolocation.clearWatch(gameState.watchId);
+                gameState.watchId = null;
+            }
+            
+            if (isComplete) {
+                const totalPrize = calculateTotalPrize();
+                document.getElementById('results-prize').textContent = totalPrize + ' $';
+                
+                showToast(translations[currentLanguage].gameCompleted);
+                
+                // Show results screen
+                setTimeout(() => {
+                    showScreen('results-screen');
+                }, 2000);
+            } else {
+                showScreen('mode-screen');
+            }
+            
+            gameState.gameActive = false;
+        }
+
+        // Calculate distance between coordinates (in meters)
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Радиус Земли в метрах
+            const R = 6371000; // Earth radius in meters
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
+            
             const a = 
                 Math.sin(dLat/2) * Math.sin(dLat/2) +
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
                 Math.sin(dLon/2) * Math.sin(dLon/2);
+            
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             return R * c;
         }
-        
+
+        // Update location manually
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const coords = [position.coords.latitude, position.coords.longitude];
+                        updateUserPosition(coords);
+                        checkProximity(coords);
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        showToast('Location update failed');
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            }
+        }
+
+        // Show toast notification
         function showToast(message) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -1110,22 +1163,9 @@
                 document.body.removeChild(toast);
             }, 3000);
         }
-        
-        function endGame() {
-            tg.showConfirm('Завершить текущую игру?', (confirmed) => {
-                if (confirmed) {
-                    if (watchId) {
-                        navigator.geolocation.clearWatch(watchId);
-                    }
-                    tg.close();
-                }
-            });
-        }
-        
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            initModeSelection();
-        });
+
+        // Initialize the app when loaded
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
