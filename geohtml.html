@@ -957,11 +957,8 @@
         
         // Add user marker
         gameState.userMarker = new ymaps.Placemark(center, {}, {
-            iconLayout: 'default#image',
-            iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
-            iconImageSize: [40, 40],
-            iconImageOffset: [-20, -20],
-            zIndex: 1000
+            preset: 'islands#blueCircleDotIcon', // Use standard Yandex Maps icon
+            iconColor: '#2196F3'
         });
         
         gameState.map.geoObjects.add(gameState.userMarker);
@@ -1077,13 +1074,7 @@
                     `${translations[currentLanguage].prizes.replace(':', '')}: ${spot.prizeAmount}$` : 
                     translations[currentLanguage].emptySpot
             }, {
-                iconLayout: 'default#image',
-                iconImageHref: spot.hasPrize ? 
-                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
-                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0iIzk5OSIgcng9IjgiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
-                iconImageSize: [32, 32],
-                iconImageOffset: [-16, -16],
-                zIndex: spot.found ? 100 : 10
+                preset: spot.hasPrize ? 'islands#redIcon' : 'islands#grayIcon'
             });
             
             spot.marker = placemark;
@@ -1173,14 +1164,18 @@
         const indicator = document.getElementById('proximity-indicator');
         const progressBar = document.getElementById('proximity-progress');
         
-        indicator.style.display = 'block';
-        progressBar.style.width = `${progress}%`;
+        if (indicator && progressBar) {
+            indicator.style.display = 'block';
+            progressBar.style.width = `${progress}%`;
+        }
     }
 
     // Hide proximity indicator
     function hideProximityIndicator() {
         const indicator = document.getElementById('proximity-indicator');
-        indicator.style.display = 'none';
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
     }
 
     // Handle found geospot
@@ -1192,7 +1187,7 @@
         
         // Update marker
         if (spot.marker) {
-            spot.marker.options.set('iconImageHref', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiM0Q0FDNTAiIHJ4PSI4Ii8+PHBhdGggZD0iTTIyIDEyTDE2IDIwbC00LTRoNHYtNGg0djR6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==');
+            spot.marker.options.set('preset', 'islands#greenIcon');
         }
         
         // Award prize
@@ -1293,13 +1288,18 @@
 
     // Show toast notification
     function showToast(message) {
+        // Remove existing toasts
+        document.querySelectorAll('.toast').forEach(toast => toast.remove());
+        
         const toast = document.createElement('div');
         toast.className = 'toast';
         toast.textContent = message;
         document.body.appendChild(toast);
         
         setTimeout(() => {
-            document.body.removeChild(toast);
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
         }, 3000);
     }
 
