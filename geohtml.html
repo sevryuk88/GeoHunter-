@@ -734,7 +734,8 @@
             gameActive: false,
             userMarker: null,
             map: null,
-            watchId: null
+            watchId: null,
+            mapInitialized: false
         };
 
         // Initialize the app
@@ -827,6 +828,7 @@
             gameState.mode = selectedMode;
             gameState.foundSpots = [];
             gameState.gameActive = true;
+            gameState.mapInitialized = false;
             
             // Update UI
             document.getElementById('game-mode-badge').textContent = translations[currentLanguage][selectedMode];
@@ -835,7 +837,8 @@
             document.getElementById('found-count').textContent = '0';
             
             showScreen('game-screen');
-            initGame();
+            //initGame();
+            setTimeout(initGame, 100);
         }
 
         // Initialize game
@@ -847,68 +850,100 @@
                         const coords = [position.coords.latitude, position.coords.longitude];
                         gameState.center = coords;
                         setupMap(coords);
-                        generateGeospots();
-                        startLocationTracking();
+                        //generateGeospots();
+                        //startLocationTracking();
                     },
                     error => {
                         console.error('Geolocation error:', error);
                         // Use default coordinates (Moscow)
                         gameState.center = [55.7558, 37.6173];
                         setupMap(gameState.center);
-                        generateGeospots();
+                        //generateGeospots();
                     },
                     { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
             } else {
                 alert('Geolocation is not supported by this browser.');
+                
+                gameState.center = [55.7558, 37.6173];
+                setupMap(gameState.center);
             }
         }
 
         // Setup map
+        // Setup map - переделанная функция с проверкой инициализации
         function setupMap(center) {
+            // Проверяем, инициализированы ли Яндекс.Карты
+            if (typeof ymaps === 'undefined') {
+                console.error('Yandex Maps not loaded');
+                showToast('Maps service not available');
+                return;
+            }
+            
             ymaps.ready(() => {
-                gameState.map = new ymaps.Map('map', {
-                    center: center,
-                    zoom: 16,
-                    controls: ['zoomControl']
-                });
-                
-                // Add user marker
-                gameState.userMarker = new ymaps.Placemark(center, {}, {
-                    iconLayout: 'default#image',
-                    iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
-                    iconImageSize: [40, 40],
-                    iconImageOffset: [-20, -20],
-                    zIndex: 1000
-                });
-                
-                gameState.map.geoObjects.add(gameState.userMarker);
-                
-                // Add search radius circle
-                const circle = new ymaps.Circle([
-                    center,
-                    GAME_MODES[gameState.mode].radius
-                ], {}, {
-                    fillColor: "rgba(33, 150, 243, 0.2)",
-                    strokeColor: "#2196F3",
-                    strokeOpacity: 0.8,
-                    strokeWidth: 2
-                });
-                
-                gameState.map.geoObjects.add(circle);
+                try {
+                    gameState.map = new ymaps.Map('map', {
+                        center: center,
+                        zoom: 16,
+                        controls: ['zoomControl']
+                    });
+                    
+                    // Добавляем обработчик полной загрузки карты
+                    gameState.map.events.add('load', function() {
+                        gameState.mapInitialized = true;
+                        
+                        // Add user marker
+                        gameState.userMarker = new ymaps.Placemark(center, {}, {
+                            iconLayout: 'default#image',
+                            iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
+                            iconImageSize: [40, 40],
+                            iconImageOffset: [-20, -20],
+                            zIndex: 1000
+                        });
+                        
+                        gameState.map.geoObjects.add(gameState.userMarker);
+                        
+                        // Add search radius circle
+                        const circle = new ymaps.Circle([
+                            center,
+                            GAME_MODES[gameState.mode].radius
+                        ], {}, {
+                            fillColor: "rgba(33, 150, 243, 0.2)",
+                            strokeColor: "#2196F3",
+                            strokeOpacity: 0.8,
+                            strokeWidth: 2
+                        });
+                        
+                        gameState.map.geoObjects.add(circle);
+                        
+                        // Генерируем геометки только после полной инициализации карты
+                        generateGeospots();
+                        startLocationTracking();
+                    });
+                } catch (e) {
+                    console.error('Map initialization error:', e);
+                    showToast('Failed to initialize map');
+                }
             });
         }
 
         // Generate geospots
+        // Generate geospots - с проверкой инициализации карты
         function generateGeospots() {
+            if (!gameState.mapInitialized) {
+                console.error('Map not initialized yet');
+                setTimeout(generateGeospots, 100);
+                return;
+            }
+            
             const modeConfig = GAME_MODES[gameState.mode];
             gameState.geospots = [];
             
             for (let i = 0; i < 5; i++) {
-                // Generate random coordinates within radius
+                // Генерация случайных координат в радиусе
                 const angle = Math.random() * Math.PI * 2;
                 const distance = Math.random() * modeConfig.radius;
-                const earthRadius = 6371000; // Earth radius in meters
+                const earthRadius = 6371000; // Радиус Земли в метрах
                 
                 const dx = distance * Math.cos(angle);
                 const dy = distance * Math.sin(angle);
@@ -919,7 +954,7 @@
                 const newLat = gameState.center[0] + deltaLat;
                 const newLon = gameState.center[1] + deltaLon;
                 
-                // Determine if this spot has a prize
+                // Определяем, будет ли приз
                 const hasPrize = Math.random() < modeConfig.win_probability;
                 const prizeAmount = hasPrize ? 
                     Math.floor(Math.random() * (modeConfig.max_prize - modeConfig.min_prize + 1)) + modeConfig.min_prize : 
@@ -935,12 +970,27 @@
                 });
             }
             
-            // Add markers to map
+            // Добавляем метки на карту
             addGeospotsToMap();
         }
 
         // Add geospots to map
+        // Add geospots to map - с проверкой инициализации карты
         function addGeospotsToMap() {
+            if (!gameState.mapInitialized || !gameState.map) {
+                console.error('Map not ready for adding geospots');
+                setTimeout(addGeospotsToMap, 100);
+                return;
+            }
+            
+            // Очищаем старые геометки, если они есть
+            gameState.geospots.forEach(spot => {
+                if (spot.marker && gameState.map.geoObjects) {
+                    gameState.map.geoObjects.remove(spot.marker);
+                }
+            });
+            
+            // Добавляем новые геометки
             gameState.geospots.forEach(spot => {
                 const placemark = new ymaps.Placemark(spot.coords, {
                     balloonContent: spot.hasPrize ? 
@@ -949,7 +999,7 @@
                 }, {
                     iconLayout: 'default#image',
                     iconImageHref: spot.hasPrize ? 
-                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
+                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k�IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
                         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
                     iconImageSize: [32, 32],
                     iconImageOffset: [-16, -16],
@@ -1165,7 +1215,12 @@
         }
 
         // Initialize the app when loaded
-        document.addEventListener('DOMContentLoaded', initApp);
+        //document.addEventListener('DOMContentLoaded', initApp);
+        // Initialize the app when loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Небольшая задержка для полной загрузки DOM
+            setTimeout(initApp, 100);
+        });
     </script>
 </body>
 </html>
