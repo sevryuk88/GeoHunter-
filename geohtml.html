@@ -606,7 +606,7 @@
     </div>
 
     <script>
-    // Translations (остаются без изменений)
+    // Translations
     const translations = {
         en: {
             welcomeTitle: "GeoHunter",
@@ -737,8 +737,7 @@
         userMarker: null,
         circle: null,
         map: null,
-        watchId: null,
-        mapInitialized: false
+        watchId: null
     };
 
     // Initialize the app
@@ -831,7 +830,6 @@
         gameState.mode = selectedMode;
         gameState.foundSpots = [];
         gameState.gameActive = true;
-        gameState.mapInitialized = false;
         
         // Update UI
         document.getElementById('game-mode-badge').textContent = translations[currentLanguage][selectedMode];
@@ -841,19 +839,42 @@
         
         showScreen('game-screen');
         
-        // Initialize map first
-        initMap();
+        // Initialize game
+        initGame();
     }
 
-    // Initialize map first
-    function initMap() {
+    // Initialize game
+    function initGame() {
         // Show loading message
-        const mapContainer = document.querySelector('.map-container');
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'map-loading';
-        loadingDiv.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:white; font-size:16px;">${translations[currentLanguage].mapLoading}</div>`;
-        mapContainer.appendChild(loadingDiv);
+        showToast(translations[currentLanguage].loadingLocation);
         
+        // Get user location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const coords = [position.coords.latitude, position.coords.longitude];
+                    gameState.center = coords;
+                    initMap();
+                },
+                error => {
+                    console.error('Geolocation error:', error);
+                    // Use default coordinates
+                    gameState.center = [55.7558, 37.6173];
+                    showToast('Using default location. Please enable GPS for better experience.');
+                    initMap();
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+            // Use default coordinates
+            gameState.center = [55.7558, 37.6173];
+            initMap();
+        }
+    }
+
+    // Initialize map
+    function initMap() {
         // Check if Yandex Maps is loaded
         if (typeof ymaps === 'undefined') {
             console.error('Yandex Maps not loaded');
@@ -863,125 +884,49 @@
         
         ymaps.ready(() => {
             try {
-                // Initialize map with default center (will be updated later)
+                // Initialize map
                 gameState.map = new ymaps.Map('map', {
-                    center: [55.7558, 37.6173], // Default center (Moscow)
-                    zoom: 13,
+                    center: gameState.center,
+                    zoom: 16,
                     controls: ['zoomControl']
                 });
                 
-                // Add event listener for map load
-                gameState.map.events.add('load', function() {
-                    gameState.mapInitialized = true;
-                    console.log('Map loaded successfully');
-                    
-                    // Remove loading message
-                    const loadingDiv = document.querySelector('.map-loading');
-                    if (loadingDiv) {
-                        loadingDiv.remove();
-                    }
-                    
-                    // Now that map is loaded, get user location
-                    getUserLocation();
+                // Add user marker
+                gameState.userMarker = new ymaps.Placemark(gameState.center, {}, {
+                    preset: 'islands#blueCircleDotIcon',
+                    iconColor: '#2196F3'
                 });
                 
-                // Handle map errors
-                gameState.map.events.add('error', function(e) {
-                    console.error('Map error:', e);
-                    showToast('Map error occurred');
-                    
-                    // Remove loading message
-                    const loadingDiv = document.querySelector('.map-loading');
-                    if (loadingDiv) {
-                        loadingDiv.remove();
-                    }
+                gameState.map.geoObjects.add(gameState.userMarker);
+                
+                // Add search radius circle
+                const modeConfig = GAME_MODES[gameState.mode];
+                gameState.circle = new ymaps.Circle([
+                    gameState.center,
+                    modeConfig.radius
+                ], {}, {
+                    fillColor: "rgba(33, 150, 243, 0.2)",
+                    strokeColor: "#2196F3",
+                    strokeOpacity: 0.8,
+                    strokeWidth: 2
                 });
+                
+                gameState.map.geoObjects.add(gameState.circle);
+                
+                // Generate geospots
+                generateGeospots();
+                
+                // Add geospots to map
+                addGeospotsToMap();
+                
+                // Start location tracking
+                startLocationTracking();
+                
             } catch (e) {
                 console.error('Map initialization error:', e);
                 showToast('Failed to initialize map');
-                
-                // Remove loading message
-                const loadingDiv = document.querySelector('.map-loading');
-                if (loadingDiv) {
-                    loadingDiv.remove();
-                }
             }
         });
-    }
-
-    // Get user location after map is loaded
-    function getUserLocation() {
-        // Show loading message for location
-        showToast(translations[currentLanguage].loadingLocation);
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    const coords = [position.coords.latitude, position.coords.longitude];
-                    gameState.center = coords;
-                    
-                    // Now setup user marker, circle and geospots
-                    setupGameElements(coords);
-                },
-                error => {
-                    console.error('Geolocation error:', error);
-                    // Use default coordinates
-                    gameState.center = [55.7558, 37.6173];
-                    showToast('Using default location. Please enable GPS for better experience.');
-                    
-                    // Setup game elements with default location
-                    setupGameElements(gameState.center);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
-            alert('Geolocation is not supported by this browser.');
-            // Use default coordinates
-            gameState.center = [55.7558, 37.6173];
-            
-            // Setup game elements with default location
-            setupGameElements(gameState.center);
-        }
-    }
-
-    // Setup game elements after map and location are ready
-    function setupGameElements(center) {
-        if (!gameState.mapInitialized || !gameState.map) {
-            console.log('Map not ready yet, retrying...');
-            setTimeout(() => setupGameElements(center), 100);
-            return;
-        }
-        
-        // Center map on user location
-        gameState.map.setCenter(center, 16);
-        
-        // Add user marker
-        gameState.userMarker = new ymaps.Placemark(center, {}, {
-            preset: 'islands#blueCircleDotIcon', // Use standard Yandex Maps icon
-            iconColor: '#2196F3'
-        });
-        
-        gameState.map.geoObjects.add(gameState.userMarker);
-        
-        // Add search radius circle
-        const modeConfig = GAME_MODES[gameState.mode];
-        gameState.circle = new ymaps.Circle([
-            center,
-            modeConfig.radius
-        ], {}, {
-            fillColor: "rgba(33, 150, 243, 0.2)",
-            strokeColor: "#2196F3",
-            strokeOpacity: 0.8,
-            strokeWidth: 2
-        });
-        
-        gameState.map.geoObjects.add(gameState.circle);
-        
-        // Generate geospots
-        generateGeospots();
-        
-        // Start location tracking
-        startLocationTracking();
     }
 
     // Load Yandex Maps API dynamically
@@ -996,24 +941,12 @@
         script.onerror = function() {
             console.error('Failed to load Yandex Maps');
             showToast('Failed to load maps. Please check your connection.');
-            
-            // Remove loading message
-            const loadingDiv = document.querySelector('.map-loading');
-            if (loadingDiv) {
-                loadingDiv.remove();
-            }
         };
         document.head.appendChild(script);
     }
 
     // Generate geospots
     function generateGeospots() {
-        if (!gameState.mapInitialized || !gameState.map) {
-            console.log('Map not initialized yet, retrying...');
-            setTimeout(generateGeospots, 100);
-            return;
-        }
-        
         const modeConfig = GAME_MODES[gameState.mode];
         gameState.geospots = [];
         
@@ -1047,25 +980,14 @@
                 marker: null
             });
         }
-        
-        // Add markers to map
-        addGeospotsToMap();
     }
 
     // Add geospots to map
     function addGeospotsToMap() {
-        if (!gameState.mapInitialized || !gameState.map) {
-            console.log('Map not ready for adding geospots, retrying...');
-            setTimeout(addGeospotsToMap, 100);
+        if (!gameState.map) {
+            console.error('Map is not initialized');
             return;
         }
-        
-        // Clear old geospots if any
-        gameState.geospots.forEach(spot => {
-            if (spot.marker && gameState.map.geoObjects) {
-                gameState.map.geoObjects.remove(spot.marker);
-            }
-        });
         
         // Add new geospots
         gameState.geospots.forEach(spot => {
@@ -1305,13 +1227,7 @@
 
     // Initialize the app when loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Wait for Yandex Maps to load
-        if (typeof ymaps !== 'undefined' && typeof ymaps.ready !== 'undefined') {
-            setTimeout(initApp, 100);
-        } else {
-            // Load Yandex Maps if not already loaded
-            setTimeout(initApp, 1000);
-        }
+        initApp();
     });
 </script>
 </html>
