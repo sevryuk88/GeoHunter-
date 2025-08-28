@@ -606,7 +606,7 @@
     </div>
 
      <script>
-    // Translations
+    // Translations (остаются без изменений)
     const translations = {
         en: {
             welcomeTitle: "GeoHunter",
@@ -733,9 +733,10 @@
         foundSpots: [],
         gameActive: false,
         userMarker: null,
+        circle: null,
         map: null,
         watchId: null,
-        mapInitialized: false // Флаг инициализации карты
+        mapInitialized: false
     };
 
     // Initialize the app
@@ -828,7 +829,7 @@
         gameState.mode = selectedMode;
         gameState.foundSpots = [];
         gameState.gameActive = true;
-        gameState.mapInitialized = false; // Сбрасываем флаг инициализации
+        gameState.mapInitialized = false;
         
         // Update UI
         document.getElementById('game-mode-badge').textContent = translations[currentLanguage][selectedMode];
@@ -838,12 +839,22 @@
         
         showScreen('game-screen');
         
-        // Небольшая задержка для инициализации DOM перед initGame
+        // Initialize game after a short delay
         setTimeout(initGame, 100);
     }
 
     // Initialize game
     function initGame() {
+        // Check if Yandex Maps is loaded
+        if (typeof ymaps === 'undefined') {
+            console.error('Yandex Maps not loaded');
+            showToast('Maps service not available');
+            
+            // Try to reload maps API
+            loadYandexMaps();
+            return;
+        }
+        
         // Request user location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -857,6 +868,7 @@
                     // Use default coordinates (Moscow)
                     gameState.center = [55.7558, 37.6173];
                     setupMap(gameState.center);
+                    showToast('Using default location. Please enable GPS for better experience.');
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -868,26 +880,45 @@
         }
     }
 
-    // Setup map - переделанная функция с проверкой инициализации
+    // Load Yandex Maps API dynamically
+    function loadYandexMaps() {
+        const script = document.createElement('script');
+        script.src = 'https://api-maps.yandex.ru/2.1/?apikey=752def06-b6ee-4762-a047-ccb35a7c4e6f&lang=ru_RU';
+        script.onload = function() {
+            console.log('Yandex Maps loaded successfully');
+            // Retry initialization after maps are loaded
+            if (gameState.center) {
+                setupMap(gameState.center);
+            }
+        };
+        script.onerror = function() {
+            console.error('Failed to load Yandex Maps');
+            showToast('Failed to load maps. Please check your connection.');
+        };
+        document.head.appendChild(script);
+    }
+
+    // Setup map
     function setupMap(center) {
-        // Проверяем, инициализированы ли Яндекс.Карты
         if (typeof ymaps === 'undefined') {
-            console.error('Yandex Maps not loaded');
-            showToast('Maps service not available');
+            console.error('Yandex Maps not available');
+            loadYandexMaps();
             return;
         }
         
         ymaps.ready(() => {
             try {
+                // Initialize map
                 gameState.map = new ymaps.Map('map', {
                     center: center,
                     zoom: 16,
                     controls: ['zoomControl']
                 });
                 
-                // Добавляем обработчик полной загрузки карты
+                // Add event listener for map load
                 gameState.map.events.add('load', function() {
                     gameState.mapInitialized = true;
+                    console.log('Map loaded successfully');
                     
                     // Add user marker
                     gameState.userMarker = new ymaps.Placemark(center, {}, {
@@ -901,9 +932,10 @@
                     gameState.map.geoObjects.add(gameState.userMarker);
                     
                     // Add search radius circle
-                    const circle = new ymaps.Circle([
+                    const modeConfig = GAME_MODES[gameState.mode];
+                    gameState.circle = new ymaps.Circle([
                         center,
-                        GAME_MODES[gameState.mode].radius
+                        modeConfig.radius
                     ], {}, {
                         fillColor: "rgba(33, 150, 243, 0.2)",
                         strokeColor: "#2196F3",
@@ -911,11 +943,17 @@
                         strokeWidth: 2
                     });
                     
-                    gameState.map.geoObjects.add(circle);
+                    gameState.map.geoObjects.add(gameState.circle);
                     
-                    // Генерируем геометки только после полной инициализации карты
+                    // Generate geospots and start tracking
                     generateGeospots();
                     startLocationTracking();
+                });
+                
+                // Handle map errors
+                gameState.map.events.add('error', function(e) {
+                    console.error('Map error:', e);
+                    showToast('Map error occurred');
                 });
             } catch (e) {
                 console.error('Map initialization error:', e);
@@ -924,10 +962,10 @@
         });
     }
 
-    // Generate geospots - с проверкой инициализации карты
+    // Generate geospots
     function generateGeospots() {
         if (!gameState.mapInitialized) {
-            console.error('Map not initialized yet');
+            console.log('Map not initialized yet, retrying...');
             setTimeout(generateGeospots, 100);
             return;
         }
@@ -936,10 +974,10 @@
         gameState.geospots = [];
         
         for (let i = 0; i < 5; i++) {
-            // Генерация случайных координат в радиусе
+            // Generate random coordinates within radius
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.random() * modeConfig.radius;
-            const earthRadius = 6371000; // Радиус Земли в метрах
+            const earthRadius = 6371000; // Earth radius in meters
             
             const dx = distance * Math.cos(angle);
             const dy = distance * Math.sin(angle);
@@ -950,7 +988,7 @@
             const newLat = gameState.center[0] + deltaLat;
             const newLon = gameState.center[1] + deltaLon;
             
-            // Определяем, будет ли приз
+            // Determine if this spot has a prize
             const hasPrize = Math.random() < modeConfig.win_probability;
             const prizeAmount = hasPrize ? 
                 Math.floor(Math.random() * (modeConfig.max_prize - modeConfig.min_prize + 1)) + modeConfig.min_prize : 
@@ -966,26 +1004,26 @@
             });
         }
         
-        // Добавляем метки на карту
+        // Add markers to map
         addGeospotsToMap();
     }
 
-    // Add geospots to map - с проверкой инициализации карты
+    // Add geospots to map
     function addGeospotsToMap() {
         if (!gameState.mapInitialized || !gameState.map) {
-            console.error('Map not ready for adding geospots');
+            console.log('Map not ready for adding geospots, retrying...');
             setTimeout(addGeospotsToMap, 100);
             return;
         }
         
-        // Очищаем старые геометки, если они есть
+        // Clear old geospots if any
         gameState.geospots.forEach(spot => {
             if (spot.marker && gameState.map.geoObjects) {
                 gameState.map.geoObjects.remove(spot.marker);
             }
         });
         
-        // Добавляем новые геометки
+        // Add new geospots
         gameState.geospots.forEach(spot => {
             const placemark = new ymaps.Placemark(spot.coords, {
                 balloonContent: spot.hasPrize ? 
@@ -994,8 +1032,8 @@
             }, {
                 iconLayout: 'default#image',
                 iconImageHref: spot.hasPrize ? 
-                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k�IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQzc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
-                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIH3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
                 iconImageSize: [32, 32],
                 iconImageOffset: [-16, -16],
                 zIndex: spot.found ? 100 : 10
@@ -1004,6 +1042,8 @@
             spot.marker = placemark;
             gameState.map.geoObjects.add(placemark);
         });
+        
+        console.log('Geospots added to map:', gameState.geospots.length);
     }
 
     // Start location tracking
@@ -1033,6 +1073,13 @@
     function updateUserPosition(coords) {
         if (gameState.userMarker) {
             gameState.userMarker.geometry.setCoordinates(coords);
+        }
+        
+        // Update circle position if it exists
+        if (gameState.circle) {
+            const modeConfig = GAME_MODES[gameState.mode];
+            gameState.circle.geometry.setCoordinates(coords);
+            gameState.circle.geometry.setRadius(modeConfig.radius);
         }
         
         // Center map on user
@@ -1211,8 +1258,14 @@
 
     // Initialize the app when loaded
     document.addEventListener('DOMContentLoaded', function() {
-        // Небольшая задержка для полной загрузки DOM
-        setTimeout(initApp, 100);
+        // Wait for Yandex Maps to load
+        if (typeof ymaps !== 'undefined' && typeof ymaps.ready !== 'undefined') {
+            setTimeout(initApp, 100);
+        } else {
+            // Load Yandex Maps if not already loaded
+            loadYandexMaps();
+            setTimeout(initApp, 1000);
+        }
     });
 </script>
 </body>
