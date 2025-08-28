@@ -605,7 +605,7 @@
         </div>
     </div>
 
-     <script>
+    <script>
     // Translations (остаются без изменений)
     const translations = {
         en: {
@@ -640,7 +640,7 @@
             rule5: "When you approach a spot, you'll get notifications",
             rule6: "Find all spots and collect prizes!",
             understand: "I Understand",
-            mapLoading: "Map will be displayed here",
+            mapLoading: "Loading map...",
             geospotsFound: "Found:",
             approachingSpot: "Approaching geospot",
             foundPrize: "🎉 Found prize: {prize}$!",
@@ -648,7 +648,8 @@
             gameCompleted: "🎊 Game completed! All spots found!",
             gameCompletedTitle: "Game Completed!",
             playAgain: "Play Again",
-            totalBalance: "Total Balance"
+            totalBalance: "Total Balance",
+            loadingLocation: "Getting your location..."
         },
         ru: {
             welcomeTitle: "GeoHunter",
@@ -682,7 +683,7 @@
             rule5: "При приближении к метке вы получите уведомления",
             rule6: "Найдите все метки и соберите призы!",
             understand: "Понятно",
-            mapLoading: "Здесь будет отображаться карта",
+            mapLoading: "Загрузка карты...",
             geospotsFound: "Найдено:",
             approachingSpot: "Приближаетесь к геометке",
             foundPrize: "🎉 Найден приз: {prize}$!",
@@ -690,7 +691,8 @@
             gameCompleted: "🎊 Игра завершена! Все метки найдены!",
             gameCompletedTitle: "Игра Завершена!",
             playAgain: "Играть снова",
-            totalBalance: "Общий баланс"
+            totalBalance: "Общий баланс",
+            loadingLocation: "Получаем ваше местоположение..."
         }
     };
 
@@ -839,36 +841,96 @@
         
         showScreen('game-screen');
         
-        // Initialize game after a short delay
-        setTimeout(initGame, 100);
+        // Initialize map first
+        initMap();
     }
 
-    // Initialize game
-    function initGame() {
+    // Initialize map first
+    function initMap() {
+        // Show loading message
+        const mapContainer = document.querySelector('.map-container');
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'map-loading';
+        loadingDiv.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%; color:white; font-size:16px;">${translations[currentLanguage].mapLoading}</div>`;
+        mapContainer.appendChild(loadingDiv);
+        
         // Check if Yandex Maps is loaded
         if (typeof ymaps === 'undefined') {
             console.error('Yandex Maps not loaded');
-            showToast('Maps service not available');
-            
-            // Try to reload maps API
             loadYandexMaps();
             return;
         }
         
-        // Request user location
+        ymaps.ready(() => {
+            try {
+                // Initialize map with default center (will be updated later)
+                gameState.map = new ymaps.Map('map', {
+                    center: [55.7558, 37.6173], // Default center (Moscow)
+                    zoom: 13,
+                    controls: ['zoomControl']
+                });
+                
+                // Add event listener for map load
+                gameState.map.events.add('load', function() {
+                    gameState.mapInitialized = true;
+                    console.log('Map loaded successfully');
+                    
+                    // Remove loading message
+                    const loadingDiv = document.querySelector('.map-loading');
+                    if (loadingDiv) {
+                        loadingDiv.remove();
+                    }
+                    
+                    // Now that map is loaded, get user location
+                    getUserLocation();
+                });
+                
+                // Handle map errors
+                gameState.map.events.add('error', function(e) {
+                    console.error('Map error:', e);
+                    showToast('Map error occurred');
+                    
+                    // Remove loading message
+                    const loadingDiv = document.querySelector('.map-loading');
+                    if (loadingDiv) {
+                        loadingDiv.remove();
+                    }
+                });
+            } catch (e) {
+                console.error('Map initialization error:', e);
+                showToast('Failed to initialize map');
+                
+                // Remove loading message
+                const loadingDiv = document.querySelector('.map-loading');
+                if (loadingDiv) {
+                    loadingDiv.remove();
+                }
+            }
+        });
+    }
+
+    // Get user location after map is loaded
+    function getUserLocation() {
+        // Show loading message for location
+        showToast(translations[currentLanguage].loadingLocation);
+        
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 position => {
                     const coords = [position.coords.latitude, position.coords.longitude];
                     gameState.center = coords;
-                    setupMap(coords);
+                    
+                    // Now setup user marker, circle and geospots
+                    setupGameElements(coords);
                 },
                 error => {
                     console.error('Geolocation error:', error);
-                    // Use default coordinates (Moscow)
+                    // Use default coordinates
                     gameState.center = [55.7558, 37.6173];
-                    setupMap(gameState.center);
                     showToast('Using default location. Please enable GPS for better experience.');
+                    
+                    // Setup game elements with default location
+                    setupGameElements(gameState.center);
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -876,8 +938,53 @@
             alert('Geolocation is not supported by this browser.');
             // Use default coordinates
             gameState.center = [55.7558, 37.6173];
-            setupMap(gameState.center);
+            
+            // Setup game elements with default location
+            setupGameElements(gameState.center);
         }
+    }
+
+    // Setup game elements after map and location are ready
+    function setupGameElements(center) {
+        if (!gameState.mapInitialized || !gameState.map) {
+            console.log('Map not ready yet, retrying...');
+            setTimeout(() => setupGameElements(center), 100);
+            return;
+        }
+        
+        // Center map on user location
+        gameState.map.setCenter(center, 16);
+        
+        // Add user marker
+        gameState.userMarker = new ymaps.Placemark(center, {}, {
+            iconLayout: 'default#image',
+            iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
+            iconImageSize: [40, 40],
+            iconImageOffset: [-20, -20],
+            zIndex: 1000
+        });
+        
+        gameState.map.geoObjects.add(gameState.userMarker);
+        
+        // Add search radius circle
+        const modeConfig = GAME_MODES[gameState.mode];
+        gameState.circle = new ymaps.Circle([
+            center,
+            modeConfig.radius
+        ], {}, {
+            fillColor: "rgba(33, 150, 243, 0.2)",
+            strokeColor: "#2196F3",
+            strokeOpacity: 0.8,
+            strokeWidth: 2
+        });
+        
+        gameState.map.geoObjects.add(gameState.circle);
+        
+        // Generate geospots
+        generateGeospots();
+        
+        // Start location tracking
+        startLocationTracking();
     }
 
     // Load Yandex Maps API dynamically
@@ -887,84 +994,24 @@
         script.onload = function() {
             console.log('Yandex Maps loaded successfully');
             // Retry initialization after maps are loaded
-            if (gameState.center) {
-                setupMap(gameState.center);
-            }
+            initMap();
         };
         script.onerror = function() {
             console.error('Failed to load Yandex Maps');
             showToast('Failed to load maps. Please check your connection.');
+            
+            // Remove loading message
+            const loadingDiv = document.querySelector('.map-loading');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
         };
         document.head.appendChild(script);
     }
 
-    // Setup map
-    function setupMap(center) {
-        if (typeof ymaps === 'undefined') {
-            console.error('Yandex Maps not available');
-            loadYandexMaps();
-            return;
-        }
-        
-        ymaps.ready(() => {
-            try {
-                // Initialize map
-                gameState.map = new ymaps.Map('map', {
-                    center: center,
-                    zoom: 16,
-                    controls: ['zoomControl']
-                });
-                
-                // Add event listener for map load
-                gameState.map.events.add('load', function() {
-                    gameState.mapInitialized = true;
-                    console.log('Map loaded successfully');
-                    
-                    // Add user marker
-                    gameState.userMarker = new ymaps.Placemark(center, {}, {
-                        iconLayout: 'default#image',
-                        iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
-                        iconImageSize: [40, 40],
-                        iconImageOffset: [-20, -20],
-                        zIndex: 1000
-                    });
-                    
-                    gameState.map.geoObjects.add(gameState.userMarker);
-                    
-                    // Add search radius circle
-                    const modeConfig = GAME_MODES[gameState.mode];
-                    gameState.circle = new ymaps.Circle([
-                        center,
-                        modeConfig.radius
-                    ], {}, {
-                        fillColor: "rgba(33, 150, 243, 0.2)",
-                        strokeColor: "#2196F3",
-                        strokeOpacity: 0.8,
-                        strokeWidth: 2
-                    });
-                    
-                    gameState.map.geoObjects.add(gameState.circle);
-                    
-                    // Generate geospots and start tracking
-                    generateGeospots();
-                    startLocationTracking();
-                });
-                
-                // Handle map errors
-                gameState.map.events.add('error', function(e) {
-                    console.error('Map error:', e);
-                    showToast('Map error occurred');
-                });
-            } catch (e) {
-                console.error('Map initialization error:', e);
-                showToast('Failed to initialize map');
-            }
-        });
-    }
-
     // Generate geospots
     function generateGeospots() {
-        if (!gameState.mapInitialized) {
+        if (!gameState.mapInitialized || !gameState.map) {
             console.log('Map not initialized yet, retrying...');
             setTimeout(generateGeospots, 100);
             return;
@@ -1033,7 +1080,7 @@
                 iconLayout: 'default#image',
                 iconImageHref: spot.hasPrize ? 
                     'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
-                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0iIzk5OSIgcng9IjgiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
                 iconImageSize: [32, 32],
                 iconImageOffset: [-16, -16],
                 zIndex: spot.found ? 100 : 10
@@ -1145,7 +1192,7 @@
         
         // Update marker
         if (spot.marker) {
-            spot.marker.options.set('iconImageHref', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgcyBjeT0iMTYiIHI9IjE0IiBmaWxsPSIjNENBQzUwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik0xMCAxNmw2IDZMMjQgMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=');
+            spot.marker.options.set('iconImageHref', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiM0Q0FDNTAiIHJ4PSI4Ii8+PHBhdGggZD0iTTIyIDEyTDE2IDIwbC00LTRoNHYtNGg0djR6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==');
         }
         
         // Award prize
@@ -1263,10 +1310,8 @@
             setTimeout(initApp, 100);
         } else {
             // Load Yandex Maps if not already loaded
-            loadYandexMaps();
             setTimeout(initApp, 1000);
         }
     });
 </script>
-</body>
 </html>
