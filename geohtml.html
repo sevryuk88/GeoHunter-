@@ -606,418 +606,583 @@
     </div>
 
      <script>
-        // Translations
-        const translations = {
-            en: {
-                welcomeTitle: "GeoHunter",
-                welcomeSubtitle: "Find hidden treasures around you!",
-                getStarted: "Get Started",
-                viewRules: "View Rules",
-                chooseMode: "Choose Game Mode",
-                economy: "Economy",
-                standard: "Standard",
-                premium: "Premium",
-                prizes: "Prizes:",
-                winChance: "Win chance:",
-                selectMode: "Select Mode",
-                updateLocation: "Update Location",
-                endGame: "End Game",
-                addFunds: "Add Funds",
-                noBonus: "No bonus",
-                bonus1: "+1$ bonus",
-                bonus3: "+3$ bonus",
-                statistics: "Statistics",
-                gamesPlayed: "Games Played",
-                prizesWon: "Prizes Won",
-                totalWinnings: "Total Winnings",
-                timePlayed: "Time Played",
-                backToMenu: "Back to Menu",
-                gameRules: "Game Rules",
-                rule1: "Choose a game mode and make a deposit",
-                rule2: "Start the game by sharing your location",
-                rule3: "5 hidden geospots will be created within 100m radius",
-                rule4: "Move around and search for the spots",
-                rule5: "When you approach a spot, you'll get notifications",
-                rule6: "Find all spots and collect prizes!",
-                understand: "I Understand",
-                mapLoading: "Map will be displayed here",
-                geospotsFound: "Found:",
-                approachingSpot: "Approaching geospot",
-                foundPrize: "🎉 Found prize: {prize}$!",
-                emptySpot: "🤷‍♂️ Empty spot",
-                gameCompleted: "🎊 Game completed! All spots found!",
-                gameCompletedTitle: "Game Completed!",
-                playAgain: "Play Again",
-                totalBalance: "Total Balance"
-            },
-            ru: {
-                welcomeTitle: "GeoHunter",
-                welcomeSubtitle: "Найди скрытые сокровища вокруг себя!",
-                getStarted: "Начать",
-                viewRules: "Правила",
-                chooseMode: "Выберите режим игры",
-                economy: "Эконом",
-                standard: "Стандарт",
-                premium: "Премиум",
-                prizes: "Призы:",
-                winChance: "Шанс выигрыша:",
-                selectMode: "Выбрать режим",
-                updateLocation: "Обновить позицию",
-                endGame: "Завершить игру",
-                addFunds: "Пополнить счет",
-                noBonus: "Без бонуса",
-                bonus1: "+1$ бонус",
-                bonus3: "+3$ бонус",
-                statistics: "Статистика",
-                gamesPlayed: "Сыграно игр",
-                prizesWon: "Выиграно призов",
-                totalWinnings: "Общий выигрыш",
-                timePlayed: "Время игры",
-                backToMenu: "В меню",
-                gameRules: "Правила игры",
-                rule1: "Выберите режим игры и внесите депозит",
-                rule2: "Запустите игру, отправив свою геопозицию",
-                rule3: "5 скрытых геометок будут созданы в радиусе 100м",
-                rule4: "Перемещайтесь и ищите метки",
-                rule5: "При приближении к метке вы получите уведомления",
-                rule6: "Найдите все метки и соберите призы!",
-                understand: "Понятно",
-                mapLoading: "Здесь будет отображаться карта",
-                geospotsFound: "Найдено:",
-                approachingSpot: "Приближаетесь к геометке",
-                foundPrize: "🎉 Найден приз: {prize}$!",
-                emptySpot: "🤷‍♂️ Пустая метка",
-                gameCompleted: "🎊 Игра завершена! Все метки найдены!",
-                gameCompletedTitle: "Игра Завершена!",
-                playAgain: "Играть снова",
-                totalBalance: "Общий баланс"
-            }
-        };
-
-        // Game modes configuration
-        const GAME_MODES = {
-            'economy': {
-                'name': {en: 'Economy', ru: 'Эконом'},
-                'entry_fee': 3,
-                'radius': 30,
-                'min_prize': 1,
-                'max_prize': 10,
-                'win_probability': 0.12
-            },
-            'standard': {
-                'name': {en: 'Standard', ru: 'Стандарт'},
-                'entry_fee': 5,
-                'radius': 50,
-                'min_prize': 3,
-                'max_prize': 15,
-                'win_probability': 0.18
-            },
-            'premium': {
-                'name': {en: 'Premium', ru: 'Премиум'},
-                'entry_fee': 7,
-                'radius': 70,
-                'min_prize': 5,
-                'max_prize': 20,
-                'win_probability': 0.25
-            }
-        };
-
-        // Game state
-        let currentLanguage = 'en';
-        let selectedMode = null;
-        let gameState = {
-            balance: 100,
-            mode: null,
-            center: null,
-            geospots: [],
-            foundSpots: [],
-            gameActive: false,
-            userMarker: null,
-            map: null,
-            watchId: null,
-            mapInitialized: false
-        };
-
-        // Initialize the app
-        function initApp() {
-            // Set up language switcher
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    setLanguage(this.dataset.lang);
-                });
-            });
-
-            // Set up navigation
-            document.getElementById('btn-start').addEventListener('click', function() {
-                showScreen('mode-screen');
-            });
-
-            document.getElementById('btn-rules').addEventListener('click', function() {
-                showScreen('rules-screen');
-            });
-
-            // Set up mode selection
-            document.querySelectorAll('.mode-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-                    this.classList.add('selected');
-                    selectedMode = this.dataset.mode;
-                    document.getElementById('btn-select-mode').disabled = false;
-                });
-            });
-
-            document.getElementById('btn-select-mode').addEventListener('click', function() {
-                startGame();
-            });
-
-            // Set initial language
-            setLanguage(currentLanguage);
+    // Translations
+    const translations = {
+        en: {
+            welcomeTitle: "GeoHunter",
+            welcomeSubtitle: "Find hidden treasures around you!",
+            getStarted: "Get Started",
+            viewRules: "View Rules",
+            chooseMode: "Choose Game Mode",
+            economy: "Economy",
+            standard: "Standard",
+            premium: "Premium",
+            prizes: "Prizes:",
+            winChance: "Win chance:",
+            selectMode: "Select Mode",
+            updateLocation: "Update Location",
+            endGame: "End Game",
+            addFunds: "Add Funds",
+            noBonus: "No bonus",
+            bonus1: "+1$ bonus",
+            bonus3: "+3$ bonus",
+            statistics: "Statistics",
+            gamesPlayed: "Games Played",
+            prizesWon: "Prizes Won",
+            totalWinnings: "Total Winnings",
+            timePlayed: "Time Played",
+            backToMenu: "Back to Menu",
+            gameRules: "Game Rules",
+            rule1: "Choose a game mode and make a deposit",
+            rule2: "Start the game by sharing your location",
+            rule3: "5 hidden geospots will be created within 100m radius",
+            rule4: "Move around and search for the spots",
+            rule5: "When you approach a spot, you'll get notifications",
+            rule6: "Find all spots and collect prizes!",
+            understand: "I Understand",
+            mapLoading: "Map will be displayed here",
+            geospotsFound: "Found:",
+            approachingSpot: "Approaching geospot",
+            foundPrize: "🎉 Found prize: {prize}$!",
+            emptySpot: "🤷‍♂️ Empty spot",
+            gameCompleted: "🎊 Game completed! All spots found!",
+            gameCompletedTitle: "Game Completed!",
+            playAgain: "Play Again",
+            totalBalance: "Total Balance"
+        },
+        ru: {
+            welcomeTitle: "GeoHunter",
+            welcomeSubtitle: "Найди скрытые сокровища вокруг себя!",
+            getStarted: "Начать",
+            viewRules: "Правила",
+            chooseMode: "Выберите режим игры",
+            economy: "Эконом",
+            standard: "Стандарт",
+            premium: "Премиум",
+            prizes: "Призы:",
+            winChance: "Шанс выигрыша:",
+            selectMode: "Выбрать режим",
+            updateLocation: "Обновить позицию",
+            endGame: "Завершить игру",
+            addFunds: "Пополнить счет",
+            noBonus: "Без бонуса",
+            bonus1: "+1$ бонус",
+            bonus3: "+3$ бонус",
+            statistics: "Статистика",
+            gamesPlayed: "Сыграно игр",
+            prizesWon: "Выиграно призов",
+            totalWinnings: "Общий выигрыш",
+            timePlayed: "Время игры",
+            backToMenu: "В меню",
+            gameRules: "Правила игры",
+            rule1: "Выберите режим игры и внесите депозит",
+            rule2: "Запустите игру, отправив свою геопозицию",
+            rule3: "5 скрытых геометок будут созданы в радиусе 100м",
+            rule4: "Перемещайтесь и ищите метки",
+            rule5: "При приближении к метке вы получите уведомления",
+            rule6: "Найдите все метки и соберите призы!",
+            understand: "Понятно",
+            mapLoading: "Здесь будет отображаться карта",
+            geospotsFound: "Найдено:",
+            approachingSpot: "Приближаетесь к геометке",
+            foundPrize: "🎉 Найден приз: {prize}$!",
+            emptySpot: "🤷‍♂️ Пустая метка",
+            gameCompleted: "🎊 Игра завершена! Все метки найдены!",
+            gameCompletedTitle: "Игра Завершена!",
+            playAgain: "Играть снова",
+            totalBalance: "Общий баланс"
         }
+    };
 
-        // Change language
-        function setLanguage(lang) {
-            currentLanguage = lang;
-            
-            // Update active button
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                if (btn.dataset.lang === lang) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
+    // Game modes configuration
+    const GAME_MODES = {
+        'economy': {
+            'name': {en: 'Economy', ru: 'Эконом'},
+            'entry_fee': 3,
+            'radius': 30,
+            'min_prize': 1,
+            'max_prize': 10,
+            'win_probability': 0.12
+        },
+        'standard': {
+            'name': {en: 'Standard', ru: 'Стандарт'},
+            'entry_fee': 5,
+            'radius': 50,
+            'min_prize': 3,
+            'max_prize': 15,
+            'win_probability': 0.18
+        },
+        'premium': {
+            'name': {en: 'Premium', ru: 'Премиум'},
+            'entry_fee': 7,
+            'radius': 70,
+            'min_prize': 5,
+            'max_prize': 20,
+            'win_probability': 0.25
+        }
+    };
+
+    // Game state
+    let currentLanguage = 'en';
+    let selectedMode = null;
+    let gameState = {
+        balance: 100,
+        mode: null,
+        center: null,
+        geospots: [],
+        foundSpots: [],
+        gameActive: false,
+        userMarker: null,
+        map: null,
+        watchId: null,
+        mapInitialized: false // Флаг инициализации карты
+    };
+
+    // Initialize the app
+    function initApp() {
+        // Set up language switcher
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                setLanguage(this.dataset.lang);
             });
-            
-            // Update all translatable elements
-            document.querySelectorAll('[data-i18n]').forEach(element => {
-                const key = element.getAttribute('data-i18n');
-                if (translations[lang][key]) {
-                    element.textContent = translations[lang][key];
-                }
+        });
+
+        // Set up navigation
+        document.getElementById('btn-start').addEventListener('click', function() {
+            showScreen('mode-screen');
+        });
+
+        document.getElementById('btn-rules').addEventListener('click', function() {
+            showScreen('rules-screen');
+        });
+
+        // Set up mode selection
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedMode = this.dataset.mode;
+                document.getElementById('btn-select-mode').disabled = false;
             });
-        }
+        });
 
-        // Show specific screen
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            document.getElementById(screenId).classList.add('active');
-        }
+        document.getElementById('btn-select-mode').addEventListener('click', function() {
+            startGame();
+        });
 
-        // Get mode price
-        function getModePrice(mode) {
-            const prices = {
-                'economy': 3,
-                'standard': 5,
-                'premium': 7
-            };
-            return prices[mode] || 0;
-        }
+        // Set initial language
+        setLanguage(currentLanguage);
+    }
 
-        // Start game
-        function startGame() {
-            if (gameState.balance < getModePrice(selectedMode)) {
-                showScreen('payment-screen');
-                return;
-            }
-            
-            // Deduct game cost
-            gameState.balance -= getModePrice(selectedMode);
-            updateBalance();
-            
-            gameState.mode = selectedMode;
-            gameState.foundSpots = [];
-            gameState.gameActive = true;
-            gameState.mapInitialized = false;
-            
-            // Update UI
-            document.getElementById('game-mode-badge').textContent = translations[currentLanguage][selectedMode];
-            document.getElementById('game-mode-badge').className = `mode-badge ${selectedMode}`;
-            document.getElementById('total-count').textContent = '5';
-            document.getElementById('found-count').textContent = '0';
-            
-            showScreen('game-screen');
-            //initGame();
-            setTimeout(initGame, 100);
-        }
-
-        // Initialize game
-        function initGame() {
-            // Request user location
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        const coords = [position.coords.latitude, position.coords.longitude];
-                        gameState.center = coords;
-                        setupMap(coords);
-                        //generateGeospots();
-                        //startLocationTracking();
-                    },
-                    error => {
-                        console.error('Geolocation error:', error);
-                        // Use default coordinates (Moscow)
-                        gameState.center = [55.7558, 37.6173];
-                        setupMap(gameState.center);
-                        //generateGeospots();
-                    },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                );
+    // Change language
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        
+        // Update active button
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.dataset.lang === lang) {
+                btn.classList.add('active');
             } else {
-                alert('Geolocation is not supported by this browser.');
-                
-                gameState.center = [55.7558, 37.6173];
-                setupMap(gameState.center);
+                btn.classList.remove('active');
             }
-        }
+        });
+        
+        // Update all translatable elements
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                element.textContent = translations[lang][key];
+            }
+        });
+    }
 
-        // Setup map
-        // Setup map - переделанная функция с проверкой инициализации
-        function setupMap(center) {
-            // Проверяем, инициализированы ли Яндекс.Карты
-            if (typeof ymaps === 'undefined') {
-                console.error('Yandex Maps not loaded');
-                showToast('Maps service not available');
-                return;
-            }
-            
-            ymaps.ready(() => {
-                try {
-                    gameState.map = new ymaps.Map('map', {
-                        center: center,
-                        zoom: 16,
-                        controls: ['zoomControl']
+    // Show specific screen
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // Get mode price
+    function getModePrice(mode) {
+        const prices = {
+            'economy': 3,
+            'standard': 5,
+            'premium': 7
+        };
+        return prices[mode] || 0;
+    }
+
+    // Start game
+    function startGame() {
+        if (gameState.balance < getModePrice(selectedMode)) {
+            showScreen('payment-screen');
+            return;
+        }
+        
+        // Deduct game cost
+        gameState.balance -= getModePrice(selectedMode);
+        updateBalance();
+        
+        gameState.mode = selectedMode;
+        gameState.foundSpots = [];
+        gameState.gameActive = true;
+        gameState.mapInitialized = false; // Сбрасываем флаг инициализации
+        
+        // Update UI
+        document.getElementById('game-mode-badge').textContent = translations[currentLanguage][selectedMode];
+        document.getElementById('game-mode-badge').className = `mode-badge ${selectedMode}`;
+        document.getElementById('total-count').textContent = '5';
+        document.getElementById('found-count').textContent = '0';
+        
+        showScreen('game-screen');
+        
+        // Небольшая задержка для инициализации DOM перед initGame
+        setTimeout(initGame, 100);
+    }
+
+    // Initialize game
+    function initGame() {
+        // Request user location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const coords = [position.coords.latitude, position.coords.longitude];
+                    gameState.center = coords;
+                    setupMap(coords);
+                },
+                error => {
+                    console.error('Geolocation error:', error);
+                    // Use default coordinates (Moscow)
+                    gameState.center = [55.7558, 37.6173];
+                    setupMap(gameState.center);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+            // Use default coordinates
+            gameState.center = [55.7558, 37.6173];
+            setupMap(gameState.center);
+        }
+    }
+
+    // Setup map - переделанная функция с проверкой инициализации
+    function setupMap(center) {
+        // Проверяем, инициализированы ли Яндекс.Карты
+        if (typeof ymaps === 'undefined') {
+            console.error('Yandex Maps not loaded');
+            showToast('Maps service not available');
+            return;
+        }
+        
+        ymaps.ready(() => {
+            try {
+                gameState.map = new ymaps.Map('map', {
+                    center: center,
+                    zoom: 16,
+                    controls: ['zoomControl']
+                });
+                
+                // Добавляем обработчик полной загрузки карты
+                gameState.map.events.add('load', function() {
+                    gameState.mapInitialized = true;
+                    
+                    // Add user marker
+                    gameState.userMarker = new ymaps.Placemark(center, {}, {
+                        iconLayout: 'default#image',
+                        iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
+                        iconImageSize: [40, 40],
+                        iconImageOffset: [-20, -20],
+                        zIndex: 1000
                     });
                     
-                    // Добавляем обработчик полной загрузки карты
-                    gameState.map.events.add('load', function() {
-                        gameState.mapInitialized = true;
-                        
-                        // Add user marker
-                        gameState.userMarker = new ymaps.Placemark(center, {}, {
-                            iconLayout: 'default#image',
-                            iconImageHref: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iIzIxOTZmMyIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iNiIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjYgMTQuNUwzMCAxOC41TDIyIDI2LjVMMTcgMjEuNUwyMC41IDE4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==',
-                            iconImageSize: [40, 40],
-                            iconImageOffset: [-20, -20],
-                            zIndex: 1000
-                        });
-                        
-                        gameState.map.geoObjects.add(gameState.userMarker);
-                        
-                        // Add search radius circle
-                        const circle = new ymaps.Circle([
-                            center,
-                            GAME_MODES[gameState.mode].radius
-                        ], {}, {
-                            fillColor: "rgba(33, 150, 243, 0.2)",
-                            strokeColor: "#2196F3",
-                            strokeOpacity: 0.8,
-                            strokeWidth: 2
-                        });
-                        
-                        gameState.map.geoObjects.add(circle);
-                        
-                        // Генерируем геометки только после полной инициализации карты
-                        generateGeospots();
-                        startLocationTracking();
+                    gameState.map.geoObjects.add(gameState.userMarker);
+                    
+                    // Add search radius circle
+                    const circle = new ymaps.Circle([
+                        center,
+                        GAME_MODES[gameState.mode].radius
+                    ], {}, {
+                        fillColor: "rgba(33, 150, 243, 0.2)",
+                        strokeColor: "#2196F3",
+                        strokeOpacity: 0.8,
+                        strokeWidth: 2
                     });
-                } catch (e) {
-                    console.error('Map initialization error:', e);
-                    showToast('Failed to initialize map');
-                }
-            });
-        }
-
-        // Generate geospots
-        // Generate geospots - с проверкой инициализации карты
-        function generateGeospots() {
-            if (!gameState.mapInitialized) {
-                console.error('Map not initialized yet');
-                setTimeout(generateGeospots, 100);
-                return;
-            }
-            
-            const modeConfig = GAME_MODES[gameState.mode];
-            gameState.geospots = [];
-            
-            for (let i = 0; i < 5; i++) {
-                // Генерация случайных координат в радиусе
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * modeConfig.radius;
-                const earthRadius = 6371000; // Радиус Земли в метрах
-                
-                const dx = distance * Math.cos(angle);
-                const dy = distance * Math.sin(angle);
-                
-                const deltaLat = (dy / earthRadius) * (180 / Math.PI);
-                const deltaLon = (dx / (earthRadius * Math.cos(Math.PI * gameState.center[0] / 180))) * (180 / Math.PI);
-                
-                const newLat = gameState.center[0] + deltaLat;
-                const newLon = gameState.center[1] + deltaLon;
-                
-                // Определяем, будет ли приз
-                const hasPrize = Math.random() < modeConfig.win_probability;
-                const prizeAmount = hasPrize ? 
-                    Math.floor(Math.random() * (modeConfig.max_prize - modeConfig.min_prize + 1)) + modeConfig.min_prize : 
-                    0;
-                
-                gameState.geospots.push({
-                    id: i,
-                    coords: [newLat, newLon],
-                    hasPrize: hasPrize,
-                    prizeAmount: prizeAmount,
-                    found: false,
-                    marker: null
+                    
+                    gameState.map.geoObjects.add(circle);
+                    
+                    // Генерируем геометки только после полной инициализации карты
+                    generateGeospots();
+                    startLocationTracking();
                 });
+            } catch (e) {
+                console.error('Map initialization error:', e);
+                showToast('Failed to initialize map');
             }
-            
-            // Добавляем метки на карту
-            addGeospotsToMap();
-        }
+        });
+    }
 
-        // Add geospots to map
-        // Add geospots to map - с проверкой инициализации карты
-        function addGeospotsToMap() {
-            if (!gameState.mapInitialized || !gameState.map) {
-                console.error('Map not ready for adding geospots');
-                setTimeout(addGeospotsToMap, 100);
-                return;
-            }
+    // Generate geospots - с проверкой инициализации карты
+    function generateGeospots() {
+        if (!gameState.mapInitialized) {
+            console.error('Map not initialized yet');
+            setTimeout(generateGeospots, 100);
+            return;
+        }
+        
+        const modeConfig = GAME_MODES[gameState.mode];
+        gameState.geospots = [];
+        
+        for (let i = 0; i < 5; i++) {
+            // Генерация случайных координат в радиусе
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * modeConfig.radius;
+            const earthRadius = 6371000; // Радиус Земли в метрах
             
-            // Очищаем старые геометки, если они есть
-            gameState.geospots.forEach(spot => {
-                if (spot.marker && gameState.map.geoObjects) {
-                    gameState.map.geoObjects.remove(spot.marker);
-                }
+            const dx = distance * Math.cos(angle);
+            const dy = distance * Math.sin(angle);
+            
+            const deltaLat = (dy / earthRadius) * (180 / Math.PI);
+            const deltaLon = (dx / (earthRadius * Math.cos(Math.PI * gameState.center[0] / 180))) * (180 / Math.PI);
+            
+            const newLat = gameState.center[0] + deltaLat;
+            const newLon = gameState.center[1] + deltaLon;
+            
+            // Определяем, будет ли приз
+            const hasPrize = Math.random() < modeConfig.win_probability;
+            const prizeAmount = hasPrize ? 
+                Math.floor(Math.random() * (modeConfig.max_prize - modeConfig.min_prize + 1)) + modeConfig.min_prize : 
+                0;
+            
+            gameState.geospots.push({
+                id: i,
+                coords: [newLat, newLon],
+                hasPrize: hasPrize,
+                prizeAmount: prizeAmount,
+                found: false,
+                marker: null
+            });
+        }
+        
+        // Добавляем метки на карту
+        addGeospotsToMap();
+    }
+
+    // Add geospots to map - с проверкой инициализации карты
+    function addGeospotsToMap() {
+        if (!gameState.mapInitialized || !gameState.map) {
+            console.error('Map not ready for adding geospots');
+            setTimeout(addGeospotsToMap, 100);
+            return;
+        }
+        
+        // Очищаем старые геометки, если они есть
+        gameState.geospots.forEach(spot => {
+            if (spot.marker && gameState.map.geoObjects) {
+                gameState.map.geoObjects.remove(spot.marker);
+            }
+        });
+        
+        // Добавляем новые геометки
+        gameState.geospots.forEach(spot => {
+            const placemark = new ymaps.Placemark(spot.coords, {
+                balloonContent: spot.hasPrize ? 
+                    `${translations[currentLanguage].prizes.replace(':', '')}: ${spot.prizeAmount}$` : 
+                    translations[currentLanguage].emptySpot
+            }, {
+                iconLayout: 'default#image',
+                iconImageHref: spot.hasPrize ? 
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k�IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQzc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIH3Ryb2tlLXdpZHRoPSIyIi8+PC9zdmc+',
+                iconImageSize: [32, 32],
+                iconImageOffset: [-16, -16],
+                zIndex: spot.found ? 100 : 10
             });
             
-            // Добавляем новые геометки
-            gameState.geospots.forEach(spot => {
-                const placemark = new ymaps.Placemark(spot.coords, {
-                    balloonContent: spot.hasPrize ? 
-                        `${translations[currentLanguage].prizes.replace(':', '')}: ${spot.prizeAmount}$` : 
-                        translations[currentLanguage].emptySpot
-                }, {
-                    iconLayout: 'default#image',
-                    iconImageHref: spot.hasPrize ? 
-                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k�IjE2IiByPSIxNCIgZmlsbD0iI0ZGREExNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSIxMSIgeT0iMjEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj7Ql9Cw0YHRgtGPPC90ZXh0Pjwvc3ZnPg==' : 
-                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iIzk5OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMjIgMTBMMTAgMjIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTEwIDEwTDIyIDIyIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
-                    iconImageSize: [32, 32],
-                    iconImageOffset: [-16, -16],
-                    zIndex: spot.found ? 100 : 10
-                });
-                
-                spot.marker = placemark;
-                gameState.map.geoObjects.add(placemark);
-            });
-        }
+            spot.marker = placemark;
+            gameState.map.geoObjects.add(placemark);
+        });
+    }
 
-        // Start location tracking
-        function startLocationTracking() {
-            if (gameState.watchId) {
-                navigator.geolocation.clearWatch(gameState.watchId);
+    // Start location tracking
+    function startLocationTracking() {
+        if (gameState.watchId) {
+            navigator.geolocation.clearWatch(gameState.watchId);
+        }
+        
+        gameState.watchId = navigator.geolocation.watchPosition(
+            position => {
+                const coords = [position.coords.latitude, position.coords.longitude];
+                updateUserPosition(coords);
+                checkProximity(coords);
+            },
+            error => {
+                console.error('Geolocation error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    }
+
+    // Update user position
+    function updateUserPosition(coords) {
+        if (gameState.userMarker) {
+            gameState.userMarker.geometry.setCoordinates(coords);
+        }
+        
+        // Center map on user
+        if (gameState.map) {
+            gameState.map.setCenter(coords);
+        }
+    }
+
+    // Check proximity to geospots
+    function checkProximity(userCoords) {
+        let closestDistance = Infinity;
+        let closestSpot = null;
+        
+        gameState.geospots.forEach(spot => {
+            if (spot.found) return;
+            
+            const distance = calculateDistance(
+                userCoords[0], userCoords[1],
+                spot.coords[0], spot.coords[1]
+            );
+            
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestSpot = spot;
             }
             
-            gameState.watchId = navigator.geolocation.watchPosition(
+            // Check if we're close enough to "find" the spot
+            if (distance <= 10) { // 10 meters
+                foundGeospot(spot);
+            }
+        });
+        
+        // Show proximity indicator
+        if (closestSpot && closestDistance <= 50) {
+            const progress = Math.max(0, 100 - (closestDistance / 50) * 100);
+            showProximityIndicator(progress);
+        } else {
+            hideProximityIndicator();
+        }
+    }
+
+    // Show proximity indicator
+    function showProximityIndicator(progress) {
+        const indicator = document.getElementById('proximity-indicator');
+        const progressBar = document.getElementById('proximity-progress');
+        
+        indicator.style.display = 'block';
+        progressBar.style.width = `${progress}%`;
+    }
+
+    // Hide proximity indicator
+    function hideProximityIndicator() {
+        const indicator = document.getElementById('proximity-indicator');
+        indicator.style.display = 'none';
+    }
+
+    // Handle found geospot
+    function foundGeospot(spot) {
+        if (spot.found) return;
+        
+        spot.found = true;
+        gameState.foundSpots.push(spot);
+        
+        // Update marker
+        if (spot.marker) {
+            spot.marker.options.set('iconImageHref', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgcyBjeT0iMTYiIHI9IjE0IiBmaWxsPSIjNENBQzUwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik0xMCAxNmw2IDZMMjQgMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=');
+        }
+        
+        // Award prize
+        if (spot.hasPrize) {
+            gameState.balance += spot.prizeAmount;
+            updateBalance();
+            
+            // Show notification
+            showToast(translations[currentLanguage].foundPrize.replace('{prize}', spot.prizeAmount));
+        } else {
+            showToast(translations[currentLanguage].emptySpot);
+        }
+        
+        // Update counter
+        updateFoundCounter();
+        
+        // Check if game is complete
+        if (gameState.foundSpots.length === gameState.geospots.length) {
+            endGame(true);
+        }
+    }
+
+    // Update found counter
+    function updateFoundCounter() {
+        document.getElementById('found-count').textContent = gameState.foundSpots.length;
+        document.getElementById('results-found').textContent = `${gameState.foundSpots.length}/5`;
+    }
+
+    // Update balance
+    function updateBalance() {
+        document.getElementById('game-balance').textContent = gameState.balance + ' $';
+        document.getElementById('results-total').textContent = gameState.balance + ' $';
+    }
+
+    // Calculate total prize
+    function calculateTotalPrize() {
+        return gameState.foundSpots
+            .filter(spot => spot.hasPrize)
+            .reduce((sum, spot) => sum + spot.prizeAmount, 0);
+    }
+
+    // End game
+    function endGame(isComplete = false) {
+        if (gameState.watchId) {
+            navigator.geolocation.clearWatch(gameState.watchId);
+            gameState.watchId = null;
+        }
+        
+        if (isComplete) {
+            const totalPrize = calculateTotalPrize();
+            document.getElementById('results-prize').textContent = totalPrize + ' $';
+            
+            showToast(translations[currentLanguage].gameCompleted);
+            
+            // Show results screen
+            setTimeout(() => {
+                showScreen('results-screen');
+            }, 2000);
+        } else {
+            showScreen('mode-screen');
+        }
+        
+        gameState.gameActive = false;
+    }
+
+    // Calculate distance between coordinates (in meters)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000; // Earth radius in meters
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    // Update location manually
+    function updateLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
                 position => {
                     const coords = [position.coords.latitude, position.coords.longitude];
                     updateUserPosition(coords);
@@ -1025,202 +1190,30 @@
                 },
                 error => {
                     console.error('Geolocation error:', error);
+                    showToast('Location update failed');
                 },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
+    }
 
-        // Update user position
-        function updateUserPosition(coords) {
-            if (gameState.userMarker) {
-                gameState.userMarker.geometry.setCoordinates(coords);
-            }
-            
-            // Center map on user
-            if (gameState.map) {
-                gameState.map.setCenter(coords);
-            }
-        }
+    // Show toast notification
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 3000);
+    }
 
-        // Check proximity to geospots
-        function checkProximity(userCoords) {
-            let closestDistance = Infinity;
-            let closestSpot = null;
-            
-            gameState.geospots.forEach(spot => {
-                if (spot.found) return;
-                
-                const distance = calculateDistance(
-                    userCoords[0], userCoords[1],
-                    spot.coords[0], spot.coords[1]
-                );
-                
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestSpot = spot;
-                }
-                
-                // Check if we're close enough to "find" the spot
-                if (distance <= 10) { // 10 meters
-                    foundGeospot(spot);
-                }
-            });
-            
-            // Show proximity indicator
-            if (closestSpot && closestDistance <= 50) {
-                const progress = Math.max(0, 100 - (closestDistance / 50) * 100);
-                showProximityIndicator(progress);
-            } else {
-                hideProximityIndicator();
-            }
-        }
-
-        // Show proximity indicator
-        function showProximityIndicator(progress) {
-            const indicator = document.getElementById('proximity-indicator');
-            const progressBar = document.getElementById('proximity-progress');
-            
-            indicator.style.display = 'block';
-            progressBar.style.width = `${progress}%`;
-        }
-
-        // Hide proximity indicator
-        function hideProximityIndicator() {
-            const indicator = document.getElementById('proximity-indicator');
-            indicator.style.display = 'none';
-        }
-
-        // Handle found geospot
-        function foundGeospot(spot) {
-            if (spot.found) return;
-            
-            spot.found = true;
-            gameState.foundSpots.push(spot);
-            
-            // Update marker
-            if (spot.marker) {
-                spot.marker.options.set('iconImageHref', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgcyBjeT0iMTYiIHI9IjE0IiBmaWxsPSIjNENBQzUwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9Ik0xMCAxNmw2IDZMMjQgMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=');
-            }
-            
-            // Award prize
-            if (spot.hasPrize) {
-                gameState.balance += spot.prizeAmount;
-                updateBalance();
-                
-                // Show notification
-                showToast(translations[currentLanguage].foundPrize.replace('{prize}', spot.prizeAmount));
-            } else {
-                showToast(translations[currentLanguage].emptySpot);
-            }
-            
-            // Update counter
-            updateFoundCounter();
-            
-            // Check if game is complete
-            if (gameState.foundSpots.length === gameState.geospots.length) {
-                endGame(true);
-            }
-        }
-
-        // Update found counter
-        function updateFoundCounter() {
-            document.getElementById('found-count').textContent = gameState.foundSpots.length;
-            document.getElementById('results-found').textContent = `${gameState.foundSpots.length}/5`;
-        }
-
-        // Update balance
-        function updateBalance() {
-            document.getElementById('game-balance').textContent = gameState.balance + ' $';
-            document.getElementById('results-total').textContent = gameState.balance + ' $';
-        }
-
-        // Calculate total prize
-        function calculateTotalPrize() {
-            return gameState.foundSpots
-                .filter(spot => spot.hasPrize)
-                .reduce((sum, spot) => sum + spot.prizeAmount, 0);
-        }
-
-        // End game
-        function endGame(isComplete = false) {
-            if (gameState.watchId) {
-                navigator.geolocation.clearWatch(gameState.watchId);
-                gameState.watchId = null;
-            }
-            
-            if (isComplete) {
-                const totalPrize = calculateTotalPrize();
-                document.getElementById('results-prize').textContent = totalPrize + ' $';
-                
-                showToast(translations[currentLanguage].gameCompleted);
-                
-                // Show results screen
-                setTimeout(() => {
-                    showScreen('results-screen');
-                }, 2000);
-            } else {
-                showScreen('mode-screen');
-            }
-            
-            gameState.gameActive = false;
-        }
-
-        // Calculate distance between coordinates (in meters)
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Earth radius in meters
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        // Update location manually
-        function updateLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        const coords = [position.coords.latitude, position.coords.longitude];
-                        updateUserPosition(coords);
-                        checkProximity(coords);
-                    },
-                    error => {
-                        console.error('Geolocation error:', error);
-                        showToast('Location update failed');
-                    },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                );
-            }
-        }
-
-        // Show toast notification
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                document.body.removeChild(toast);
-            }, 3000);
-        }
-
-        // Initialize the app when loaded
-        //document.addEventListener('DOMContentLoaded', initApp);
-        // Initialize the app when loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Небольшая задержка для полной загрузки DOM
-            setTimeout(initApp, 100);
-        });
-    </script>
+    // Initialize the app when loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Небольшая задержка для полной загрузки DOM
+        setTimeout(initApp, 100);
+    });
+</script>
 </body>
 </html>
