@@ -3,6 +3,7 @@ import requests
 import time
 from typing import Dict, Any
 import asyncio
+import sqlite3
 import os
 import logging
 import json
@@ -189,6 +190,7 @@ async def handle_web_app_data(update: Update, context: CallbackContext) -> None:
         logger.error(f"Error processing web app data: {e}")
         await update.message.reply_text("Sorry, there was an error processing your request.")
         
+        
 async def admin_stats(update: Update, context: CallbackContext) -> None:
     """Показать статистику для администратора"""
     user_id = update.effective_user.id
@@ -198,37 +200,45 @@ async def admin_stats(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("❌ У вас нет прав для выполнения этой команды.")
         return
     
-    # Получаем статистику из базы данных
-    conn = sqlite3.connect('geohunter.db')
-    cursor = conn.cursor()
-    
-    # Общая статистика
-    cursor.execute('SELECT COUNT(*) FROM users')
-    total_users = cursor.fetchone()[0]
-    
-    cursor.execute('SELECT COUNT(*) FROM games')
-    total_games = cursor.fetchone()[0]
-    
-    cursor.execute('SELECT SUM(prize_won) FROM games')
-    total_prizes = cursor.fetchone()[0] or 0
-    
-    cursor.execute('SELECT SUM(amount) FROM transactions WHERE type = "deposit" AND status = "completed"')
-    total_deposits = cursor.fetchone()[0] or 0
-    
-    conn.close()
-    
-    # Формируем сообщение со статистикой
-    stats_message = (
-        "📊 Статистика бота:\n\n"
-        f"👥 Всего пользователей: {total_users}\n"
-        f"🎮 Всего игр: {total_games}\n"
-        f"🏆 Всего выигрышей: ${total_prizes}\n"
-        f"💰 Всего пополнений: ${total_deposits}\n"
-        f"💵 Доход: ${total_deposits - total_prizes}"
-    )
-    
-    await update.message.reply_text(stats_message)
-
+    # Используем методы базы данных вместо прямых SQL-запросов
+    try:
+        # Получаем статистику через методы базы данных
+        conn = sqlite3.connect('geohunter.db')
+        cursor = conn.cursor()
+        
+        # Общая статистика
+        cursor.execute('SELECT COUNT(*) FROM users')
+        total_users = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT COUNT(*) FROM games')
+        total_games = cursor.fetchone()[0]
+        
+        cursor.execute('SELECT SUM(prize_won) FROM games')
+        total_prizes = cursor.fetchone()[0] or 0
+        
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE type = "deposit" AND status = "completed"')
+        total_deposits = cursor.fetchone()[0] or 0
+        
+        conn.close()
+        
+        # Формируем сообщение со статистикой
+        stats_message = (
+            "📊 Статистика бота:\n\n"
+            f"👥 Всего пользователей: {total_users}\n"
+            f"🎮 Всего игр: {total_games}\n"
+            f"🏆 Всего выигрышей: ${total_prizes}\n"
+            f"💰 Всего пополнений: ${total_deposits}\n"
+            f"💵 Доход: ${total_deposits - total_prizes}"
+        )
+        
+        await update.message.reply_text(stats_message)
+        
+    except Exception as e:
+        logger.error(f"Error getting admin stats: {e}")
+        await update.message.reply_text("❌ Произошла ошибка при получении статистики.")
+        
+        
+        
 async def admin_broadcast(update: Update, context: CallbackContext) -> None:
     """Рассылка сообщения всем пользователям"""
     user_id = update.effective_user.id
