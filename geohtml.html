@@ -650,6 +650,8 @@
             playAgain: "Play Again",
             totalBalance: "Total Balance",
             loadingLocation: "Getting your location..."
+            mapLoadError: "Failed to load maps. Please check your internet connection.",
+            retry: "Try again"
         },
         ru: {
             welcomeTitle: "GeoHunter",
@@ -693,6 +695,8 @@
             playAgain: "Играть снова",
             totalBalance: "Общий баланс",
             loadingLocation: "Получаем ваше местоположение..."
+            mapLoadError: "Не удалось загрузить карты. Проверьте подключение к интернету.",
+            retry: "Попробовать снова"
         }
     };
 
@@ -929,7 +933,7 @@
         });
     }
 
-    // Load Yandex Maps API dynamically
+    // Обновляем функцию loadYandexMaps
     function loadYandexMaps() {
         const script = document.createElement('script');
         script.src = 'https://api-maps.yandex.ru/2.1/?apikey=752def06-b6ee-4762-a047-ccb35a7c4e6f&lang=ru_RU';
@@ -940,7 +944,28 @@
         };
         script.onerror = function() {
             console.error('Failed to load Yandex Maps');
-            showToast('Failed to load maps. Please check your connection.');
+            
+            // Показываем сообщение об ошибке
+            const mapContainer = document.querySelector('.map-container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'map-error';
+            errorDiv.innerHTML = `
+                <h3>${translations[currentLanguage].mapLoadError || 'Failed to load maps'}</h3>
+                <button onclick="loadYandexMaps()">${translations[currentLanguage].retry || 'Retry'}</button>
+            `;
+            errorDiv.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                z-index: 10;
+                background: rgba(0,0,0,0.8);
+                padding: 20px;
+                border-radius: 10px;
+            `;
+            
+            mapContainer.appendChild(errorDiv);
         };
         document.head.appendChild(script);
     }
