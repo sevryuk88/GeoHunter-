@@ -1150,8 +1150,21 @@
             .filter(spot => spot.hasPrize)
             .reduce((sum, spot) => sum + spot.prizeAmount, 0);
     }
+    
+    
+    // Функция для отправки данных боту
+    function sendDataToBot(data) {
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.sendData(JSON.stringify(data));
+            Telegram.WebApp.close();
+        } else {
+            console.error('Telegram WebApp not available');
+            // Fallback для тестирования вне Telegram
+            alert('Data to be sent: ' + JSON.stringify(data));
+        }
+    }
 
-    // End game
+    // Обновляем функцию endGame
     function endGame(isComplete = false) {
         if (gameState.watchId) {
             navigator.geolocation.clearWatch(gameState.watchId);
@@ -1160,11 +1173,26 @@
         
         if (isComplete) {
             const totalPrize = calculateTotalPrize();
-            document.getElementById('results-prize').textContent = totalPrize + ' $';
             
+            // Отправляем результаты игры боту
+            const gameData = {
+                type: 'game_result',
+                mode: gameState.mode,
+                entry_fee: getModePrice(gameState.mode),
+                prize_won: totalPrize,
+                found_geospots: gameState.foundSpots.map(spot => ({
+                    has_prize: spot.hasPrize,
+                    prize_amount: spot.prizeAmount
+                }))
+            };
+            
+            sendDataToBot(gameData);
+            
+            // Показываем результаты
+            document.getElementById('results-prize').textContent = totalPrize + ' $';
             showToast(translations[currentLanguage].gameCompleted);
             
-            // Show results screen
+            // Показываем экран результатов
             setTimeout(() => {
                 showScreen('results-screen');
             }, 2000);
@@ -1173,6 +1201,22 @@
         }
         
         gameState.gameActive = false;
+    }
+    
+    // Добавляем обработчик для кнопки пополнения счета
+    function setupPaymentHandlers() {
+        document.querySelectorAll('.payment-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const amount = parseFloat(this.querySelector('.payment-amount').textContent.replace('$', ''));
+                
+                const paymentData = {
+                    type: 'payment_request',
+                    amount: amount
+                };
+                
+                sendDataToBot(paymentData);
+            });
+        });
     }
 
     // Calculate distance between coordinates (in meters)
@@ -1207,6 +1251,8 @@
             );
         }
     }
+    
+
 
     // Show toast notification
     function showToast(message) {
@@ -1225,9 +1271,10 @@
         }, 3000);
     }
 
-    // Initialize the app when loaded
+    // Инициализируем обработчики платежей при загрузке
     document.addEventListener('DOMContentLoaded', function() {
         initApp();
+        setupPaymentHandlers(); // Добавляем эту строку
     });
 </script>
 </html>
