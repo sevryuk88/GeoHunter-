@@ -1,5 +1,6 @@
 # GeoHunter.py
 import requests
+import traceback
 import time
 from typing import Dict, Any
 import asyncio
@@ -40,13 +41,23 @@ def create_crypto_invoice(user_id: int, amount: float, asset: str = "USDT") -> D
         "Content-Type": "application/json"
     }
     
+    # Генерируем уникальный payload для отслеживания платежа
+    payload_data = {
+        "user_id": user_id, 
+        "type": "deposit",
+        "amount": amount,
+        "timestamp": int(time.time())
+    }
+    
+    payload_str = json.dumps(payload_data)
+    
     payload = {
         "asset": asset,
         "amount": str(amount),
-        "description": f"Пополнение счета для пользователя {user_id}",
+        "description": f"Пополнение счета GeoHunter для пользователя {user_id}",
         "paid_btn_name": "open",
-        "paid_btn_url": f"https://t.me/geohunter_bot?start=payment_success_{user_id}",
-        "payload": json.dumps({"user_id": user_id, "type": "deposit"}),
+        "paid_btn_url": f"https://t.me/geohunter_bot?start=payment_{user_id}_{amount}",
+        "payload": payload_str,
         "allow_comments": False,
         "allow_anonymous": False
     }
@@ -58,11 +69,17 @@ def create_crypto_invoice(user_id: int, amount: float, asset: str = "USDT") -> D
             json=payload
         )
         response.raise_for_status()
-        return response.json().get("result", {})
+        result = response.json().get("result", {})
+        
+        # Логируем результат для отладки
+        logger.info(f"CryptoBot invoice created: {result}")
+        
+        return result
     except Exception as e:
         logger.error(f"Error creating CryptoBot invoice: {e}")
         return {}
-
+        
+        
 def check_crypto_invoice(invoice_id: int) -> Dict[str, Any]:
     """Проверка статуса инвойса в CryptoBot"""
     headers = {
@@ -71,20 +88,27 @@ def check_crypto_invoice(invoice_id: int) -> Dict[str, Any]:
     
     try:
         response = requests.get(
-            f"{CRYPTO_BOT_API_URL}api/invoice/{invoice_id}",
+            f"{CRYPTO_BOT_API_URL}api/invoice?invoice_ids={invoice_id}",
             headers=headers
         )
         response.raise_for_status()
-        return response.json().get("result", {})
+        result = response.json().get("result", {}).get("items", [])
+        return result[0] if result else {}
     except Exception as e:
         logger.error(f"Error checking CryptoBot invoice: {e}")
         return {}
 
 # Замените функцию process_crypto_payment в GeoHunter.py
 
+# В начале файла добавьте
+import traceback
+
+# В функции process_crypto_payment добавьте подробное логирование
 async def process_crypto_payment(context: CallbackContext) -> None:
     """Асинхронная обработка платежей через CryptoBot"""
     try:
+        logger.info("Starting payment processing job")
+        
         # Получаем все ожидающие платежи из базы данных
         conn = sqlite3.connect('geohunter.db')
         cursor = conn.cursor()
@@ -92,13 +116,21 @@ async def process_crypto_payment(context: CallbackContext) -> None:
         pending_transactions = cursor.fetchall()
         conn.close()
         
+        logger.info(f"Found {len(pending_transactions)} pending transactions")
+        
         for transaction in pending_transactions:
             transaction_id, user_id, amount, transaction_type, status, provider, provider_transaction_id, created_at = transaction
+            
+            logger.info(f"Checking invoice {provider_transaction_id} for user {user_id}")
             
             # Проверяем статус инвойса
             invoice_info = check_crypto_invoice(provider_transaction_id)
             
+            logger.info(f"Invoice info: {invoice_info}")
+            
             if invoice_info.get('status') == 'paid':
+                logger.info(f"Invoice {provider_transaction_id} is paid, updating balance")
+                
                 # Обновляем статус транзакции и баланс пользователя
                 db.update_balance(user_id, amount)
                 db.add_transaction(user_id, amount, "deposit", "completed", "cryptobot", provider_transaction_id)
@@ -109,11 +141,14 @@ async def process_crypto_payment(context: CallbackContext) -> None:
                         chat_id=user_id,
                         text=f"✅ Ваш платеж на ${amount} успешно обработан! Текущий баланс: ${db.get_balance(user_id)}"
                     )
+                    logger.info(f"Notification sent to user {user_id}")
                 except Exception as e:
                     logger.error(f"Error sending payment confirmation: {e}")
     except Exception as e:
         logger.error(f"Error in process_crypto_payment: {e}")
-                
+        logger.error(traceback.format_exc()) 
+        
+                                      
 
 async def start(update: Update, context: CallbackContext) -> None:
     """Обработчик команды /start"""
@@ -121,6 +156,24 @@ async def start(update: Update, context: CallbackContext) -> None:
     
     # Создаем или получаем пользователя
     db.create_user(user)
+    
+    # Обработка платежных callback
+    if context.args and context.args[0].startswith('payment_'):
+        try:
+            parts = context.args[0].split('_')
+            if len(parts) >= 3:
+                target_user_id = int(parts[1])
+                amount = float(parts[2])
+                
+                # Проверяем, что это тот же пользователь
+                if user.id == target_user_id:
+                    # Показываем сообщение о ожидании платежа
+                    await update.message.reply_text(
+                        f"✅ Ваш платеж на ${amount} обрабатывается. "
+                        f"Баланс будет зачислен в течение нескольких минут после подтверждения платежа."
+                    )
+        except ValueError:
+            logger.error("Invalid payment callback format")
     
     welcome_text = (
         "🌟 Welcome to GeoHunter! 🌟\n\n"
@@ -137,7 +190,10 @@ async def start(update: Update, context: CallbackContext) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
-
+    
+    
+    
+    
 async def handle_web_app_data(update: Update, context: CallbackContext) -> None:
     """Обработка данных из веб-приложения"""
     try:
@@ -289,7 +345,9 @@ def generate_payment_url(user_id, amount):
         db.add_transaction(user_id, amount, "deposit", "pending", "cryptobot", invoice.get('invoice_id'))
         return invoice['pay_url']
     
-    return "https://t.me/CryptoBot?start=invoice_error"
+    logger.error(f"Failed to create invoice for user {user_id}, amount {amount}")
+    return "Ошибка при создании платежа. Попробуйте позже."
+    
     
 
 async def handle_successful_payment(update: Update, context: CallbackContext) -> None:
@@ -315,8 +373,9 @@ async def deposit_command(update: Update, context: CallbackContext) -> None:
         "Выберите сумму для пополнения:",
         reply_markup=reply_markup
     )
+    
+    
 
-# Добавьте обработчик callback-запросов
 async def handle_deposit_callback(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
@@ -327,10 +386,19 @@ async def handle_deposit_callback(update: Update, context: CallbackContext) -> N
     # Генерируем ссылку для оплаты
     payment_url = generate_payment_url(user_id, amount)
     
-    await query.edit_message_text(
-        f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
-        "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
-    )
+    # Проверяем, что ссылка сгенерирована успешно
+    if payment_url.startswith("http"):
+        await query.edit_message_text(
+            f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
+            "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
+        )
+    else:
+        await query.edit_message_text(
+            f"❌ {payment_url}\n\n"
+            "Попробуйте еще раз или обратитесь в поддержку."
+        )
+        
+        
 
 # В функции main() после создания application
 def main() -> None:
