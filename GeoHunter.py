@@ -9,7 +9,7 @@ import logging
 import json
 from dotenv import load_dotenv
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters, JobQueue
+from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters, JobQueue, CallbackQueryHandler
 
 from database import Database
 
@@ -297,6 +297,40 @@ async def handle_successful_payment(update: Update, context: CallbackContext) ->
     # Здесь будет обработка успешных платежей
     # Пока заглушка
     pass
+    
+    
+async def deposit_command(update: Update, context: CallbackContext) -> None:
+    """Команда для пополнения баланса"""
+    user_id = update.effective_user.id
+    
+    # Создаем клавиатуру с вариантами сумм
+    keyboard = [
+        [InlineKeyboardButton("5$", callback_data="deposit_5")],
+        [InlineKeyboardButton("10$", callback_data="deposit_10")],
+        [InlineKeyboardButton("20$", callback_data="deposit_20")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "Выберите сумму для пополнения:",
+        reply_markup=reply_markup
+    )
+
+# Добавьте обработчик callback-запросов
+async def handle_deposit_callback(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    amount = float(query.data.split('_')[1])
+    
+    # Генерируем ссылку для оплаты
+    payment_url = generate_payment_url(user_id, amount)
+    
+    await query.edit_message_text(
+        f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
+        "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
+    )
 
 # В функции main() после создания application
 def main() -> None:
@@ -310,6 +344,9 @@ def main() -> None:
     # Добавляем обработчики команд администратора
     application.add_handler(CommandHandler("stats", admin_stats))
     application.add_handler(CommandHandler("broadcast", admin_broadcast))
+    
+    application.add_handler(CommandHandler("deposit", deposit_command))
+    application.add_handler(CallbackQueryHandler(handle_deposit_callback, pattern="^deposit_"))
     
     # Добавляем планировщик для проверки платежей каждые 5 минут
     job_queue = application.job_queue
