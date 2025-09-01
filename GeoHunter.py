@@ -217,15 +217,6 @@ async def process_crypto_payment(context: CallbackContext) -> None:
     except Exception as e:
         logger.error(f"Error in process_crypto_payment: {e}")
         logger.error(traceback.format_exc())
-        
-
-
-# Добавьте эту функцию для показа меню пополнения
-async def show_deposit_menu(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    await query.answer()
-    await deposit_command(update, context)
-    
 
 async def start(update: Update, context: CallbackContext) -> None:
     """Обработчик команды /start"""
@@ -263,12 +254,12 @@ async def start(update: Update, context: CallbackContext) -> None:
                     # Проверяем, что это тот же пользователь
                     if user.id == target_user_id:
                         # В демо-режиме сразу зачисляем средства
-                        db.update_balance(user_id, amount)
-                        db.add_transaction(user_id, amount, "deposit", "completed", "demo", f"demo_{int(time.time())}")
+                        db.update_balance(user.id, amount)
+                        db.add_transaction(user.id, amount, "deposit", "completed", "demo", f"demo_{int(time.time())}")
                         
                         await update.message.reply_text(
                             f"✅ Демо-платеж на ${amount} успешно обработан! "
-                            f"Текущий баланс: ${db.get_balance(user_id)}"
+                            f"Текущий баланс: ${db.get_balance(user.id)}"
                         )
             except ValueError:
                 logger.error("Invalid demo payment callback format")
@@ -285,10 +276,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     welcome_text += "Click the button below to launch the game interface:"
     
     # Добавляем initData для аутентификации в веб-приложении
-    #web_app_url = f"{WEB_APP_URL}?user_id={user.id}&demo_mode={DEMO_MODE}"
-    # Добавляем initData для аутентификации в веб-приложении
-    web_app_url = f"{WEB_APP_URL}?user_id={user.id}&demo_mode={DEMO_MODE}&balance={db.get_balance(user.id)}"
-    
+    web_app_url = f"{WEB_APP_URL}?user_id={user.id}&demo_mode={DEMO_MODE}"
     
     keyboard = [
         [InlineKeyboardButton("🎮 Launch GeoHunter", web_app=WebAppInfo(url=web_app_url))]
@@ -302,37 +290,135 @@ async def start(update: Update, context: CallbackContext) -> None:
     
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
     
+async def show_deposit_menu(update: Update, context: CallbackContext) -> None:
+    """Показать меню пополнения баланса"""
+    query = update.callback_query
+    await query.answer()
     
+    # Просто вызываем команду пополнения баланса
+    await deposit_command(update, context)
     
+async def deposit_command(update: Update, context: CallbackContext) -> None:
+    """Команда для пополнения баланса"""
+    user_id = update.effective_user.id
+    
+    if DEMO_MODE:
+        # В демо-режиме предлагаем виртуальное пополнение
+        keyboard = [
+            [InlineKeyboardButton("➕ 10$ (Демо)", callback_data="demo_deposit_10")],
+            [InlineKeyboardButton("➕ 50$ (Демо)", callback_data="demo_deposit_50")],
+            [InlineKeyboardButton("➕ 100$ (Демо)", callback_data="demo_deposit_100")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            "🔶 ДЕМО-РЕЖИМ 🔶\nВыберите сумму для виртуального пополнения:",
+            reply_markup=reply_markup
+        )
+    else:
+        # В реальном режиме предлагаем реальное пополнение
+        keyboard = [
+            [InlineKeyboardButton("5$", callback_data="deposit_5")],
+            [InlineKeyboardButton("10$", callback_data="deposit_10")],
+            [InlineKeyboardButton("20$", callback_data="deposit_20")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            "Выберите сумму для пополнения:",
+            reply_markup=reply_markup
+        )
+        
+async def handle_deposit_callback(update: Update, context: CallbackContext) -> None:
+    """Обработка callback-запросов для пополнения баланса"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    callback_data = query.data
+    
+    # Проверяем, что это действительно запрос на пополнение с суммой
+    if not callback_data.startswith(('deposit_', 'demo_deposit_')):
+        await query.edit_message_text("❌ Неизвестный тип запроса.")
+        return
+    
+    try:
+        # Извлекаем сумму из callback_data
+        if callback_data.startswith('demo_deposit_'):
+            amount_str = callback_data.replace('demo_deposit_', '')
+            is_demo = True
+        else:
+            amount_str = callback_data.replace('deposit_', '')
+            is_demo = False
+        
+        # Проверяем, что amount_str состоит только из цифр
+        if not amount_str.isdigit():
+            await query.edit_message_text("❌ Неверный формат суммы.")
+            return
+            
+        amount = float(amount_str)
+        
+        if is_demo:
+            # В демо-режиме сразу зачисляем средства
+            db.update_balance(user_id, amount)
+            db.add_transaction(user_id, amount, "deposit", "completed", "demo", f"demo_{int(time.time())}")
+            
+            await query.edit_message_text(
+                f"✅ Виртуальное пополнение на ${amount} успешно выполнено!\n"
+                f"Текущий баланс: ${db.get_balance(user_id)}"
+            )
+        else:
+            # В реальном режиме генерируем ссылку для оплаты
+            payment_url = generate_payment_url(user_id, amount)
+            
+            # Проверяем, что ссылка сгенерирована успешно
+            if payment_url.startswith("http"):
+                await query.edit_message_text(
+                    f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
+                    "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
+                )
+            else:
+                await query.edit_message_text(
+                    f"❌ {payment_url}\n\n"
+                    "Попробуйте еще раз или обратитесь в поддержку."
+                )
+                
+    except ValueError as e:
+        logger.error(f"Error parsing amount from callback data: {callback_data}, error: {e}")
+        await query.edit_message_text(
+            "❌ Ошибка обработки запроса. Попробуйте еще раз или обратитесь в поддержку."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in handle_deposit_callback: {e}")
+        logger.error(traceback.format_exc())
+        await query.edit_message_text(
+            "❌ Произошла непредвиденная ошибка. Попробуйте еще раз или обратитесь в поддержку."
+        )
+
 async def handle_web_app_data(update: Update, context: CallbackContext) -> None:
     """Обработка данных из веб-приложения"""
     try:
         data = json.loads(update.message.web_app_data.data)
-        user_id = data.get('user_id', update.effective_user.id)
+        user_id = update.effective_user.id
         
         logger.info(f"Received data from web app: {data}")
         
         # Обработка разных типов данных из веб-приложения
         if data.get('type') == 'game_result':
-            # Получаем параметры игры
-            mode = data.get('mode', 'economy')
-            entry_fee = data.get('entry_fee', 0)
-            prize_won = data.get('prize_won', 0)
-            found_geospots = data.get('found_geospots', [])
-            
-            # Создаем запись об игре
-            game_id = db.create_game(user_id, mode, entry_fee)
+            # Обработка результатов игры
+            game_id = db.create_game(user_id, data['mode'], data['entry_fee'])
             
             # Добавляем найденные геоточки
-            for geospot in found_geospots:
+            for geospot in data.get('found_geospots', []):
                 db.add_found_geospot(
                     game_id, 
                     user_id, 
-                    geospot.get('has_prize', False), 
+                    geospot['has_prize'], 
                     geospot.get('prize_amount', 0)
                 )
             
             # Обновляем баланс пользователя
+            prize_won = data.get('prize_won', 0)
             if prize_won > 0:
                 db.update_balance(user_id, prize_won)
                 db.update_game_result(game_id, prize_won)
@@ -361,7 +447,7 @@ async def handle_web_app_data(update: Update, context: CallbackContext) -> None:
         logger.error(f"Error processing web app data: {e}")
         await update.message.reply_text("Sorry, there was an error processing your request.")
         
-                        
+        
 
 async def admin_stats(update: Update, context: CallbackContext) -> None:
     """Показать статистику для администратора"""
@@ -487,105 +573,10 @@ def generate_payment_url(user_id, amount):
         logger.error(f"Failed to create invoice for user {user_id}, amount {amount}. Invoice response: {invoice}")
         return "Ошибка при создании платежа. Попробуйте позже."
         
-        
-
-async def deposit_command(update: Update, context: CallbackContext) -> None:
-    """Команда для пополнения баланса"""
-    user_id = update.effective_user.id
-    
-    if DEMO_MODE:
-        # В демо-режиме предлагаем виртуальное пополнение
-        keyboard = [
-            [InlineKeyboardButton("➕ 10$ (Демо)", callback_data="demo_deposit_10")],
-            [InlineKeyboardButton("➕ 50$ (Демо)", callback_data="demo_deposit_50")],
-            [InlineKeyboardButton("➕ 100$ (Демо)", callback_data="demo_deposit_100")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await update.message.reply_text(
-            "🔶 ДЕМО-РЕЖИМ 🔶\nВыберите сумму для виртуального пополнения:",
-            reply_markup=reply_markup
-        )
-    else:
-        # В реальном режиме предлагаем реальное пополнение
-        keyboard = [
-            [InlineKeyboardButton("5$", callback_data="deposit_5")],
-            [InlineKeyboardButton("10$", callback_data="deposit_10")],
-            [InlineKeyboardButton("20$", callback_data="deposit_20")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await update.message.reply_text(
-            "Выберите сумму для пополнения:",
-            reply_markup=reply_markup
-        )
-        
-
-async def handle_deposit_callback(update: Update, context: CallbackContext) -> None:
-    """Обработка callback-запросов для пополнения баланса"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    callback_data = query.data
-    
-    try:
-        # Обработка демо-пополнения
-        if callback_data.startswith('demo_deposit_'):
-            amount_str = callback_data.replace('demo_deposit_', '')
-            amount = float(amount_str)
-            
-            # В демо-режиме сразу зачисляем средства
-            db.update_balance(user_id, amount)
-            db.add_transaction(user_id, amount, "deposit", "completed", "demo", f"demo_{int(time.time())}")
-            
-            await query.edit_message_text(
-                f"✅ Виртуальное пополнение на ${amount} успешно выполнено!\n"
-                f"Текущий баланс: ${db.get_balance(user_id)}"
-            )
-        
-        # Обработка реального пополнения
-        elif callback_data.startswith('deposit_'):
-            amount_str = callback_data.replace('deposit_', '')
-            amount = float(amount_str)
-            
-            # Генерируем ссылку для оплаты
-            payment_url = generate_payment_url(user_id, amount)
-            
-            # Проверяем, что ссылка сгенерирована успешно
-            if payment_url.startswith("http"):
-                await query.edit_message_text(
-                    f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
-                    "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
-                )
-            else:
-                await query.edit_message_text(
-                    f"❌ {payment_url}\n\n"
-                    "Попробуйте еще раз или обратитесь в поддержку."
-                )
-        else:
-            # Если callback_data не распознан, показываем меню
-            await show_deposit_menu(update, context)
-            
-    except ValueError as e:
-        logger.error(f"Error parsing amount from callback data: {callback_data}, error: {e}")
-        await query.edit_message_text(
-            "❌ Ошибка обработки запроса. Попробуйте еще раз или обратитесь в поддержку."
-        )
-    except Exception as e:
-        logger.error(f"Unexpected error in handle_deposit_callback: {e}")
-        logger.error(traceback.format_exc())
-        await query.edit_message_text(
-            "❌ Произошла непредвиденная ошибка. Попробуйте еще раз или обратитесь в поддержку."
-        )        
-
-
 async def handle_successful_payment(update: Update, context: CallbackContext) -> None:
     """Обработка успешного платежа"""
     # Здесь будет обработка успешных платежей
     pass
-       
-
 
 def main() -> None:
     """Запуск бота"""
@@ -602,9 +593,10 @@ def main() -> None:
     application.add_handler(CommandHandler("broadcast", admin_broadcast))
     application.add_handler(CommandHandler("toggle_mode", admin_toggle_mode))
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
-    application.add_handler(CallbackQueryHandler(handle_deposit_callback, pattern="^(demo_)?deposit_"))
-    application.add_handler(CallbackQueryHandler(show_deposit_menu, pattern="^deposit_menu$"))
     
+    # Добавляем обработчики callback-запросов
+    application.add_handler(CallbackQueryHandler(show_deposit_menu, pattern="^deposit_menu$"))
+    application.add_handler(CallbackQueryHandler(handle_deposit_callback, pattern="^(demo_)?deposit_\\d+$"))
     
     # Добавляем планировщик для проверки платежей (только в реальном режиме)
     if not DEMO_MODE:
@@ -621,3 +613,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+     
