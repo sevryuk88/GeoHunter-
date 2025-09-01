@@ -217,6 +217,15 @@ async def process_crypto_payment(context: CallbackContext) -> None:
     except Exception as e:
         logger.error(f"Error in process_crypto_payment: {e}")
         logger.error(traceback.format_exc())
+        
+
+
+# Добавьте эту функцию для показа меню пополнения
+async def show_deposit_menu(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+    await deposit_command(update, context)
+    
 
 async def start(update: Update, context: CallbackContext) -> None:
     """Обработчик команды /start"""
@@ -511,7 +520,6 @@ async def deposit_command(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
         
-        
 
 async def handle_deposit_callback(update: Update, context: CallbackContext) -> None:
     """Обработка callback-запросов для пополнения баланса"""
@@ -556,9 +564,8 @@ async def handle_deposit_callback(update: Update, context: CallbackContext) -> N
                     "Попробуйте еще раз или обратитесь в поддержку."
                 )
         else:
-            await query.edit_message_text(
-                "❌ Неизвестный тип запроса. Попробуйте еще раз."
-            )
+            # Если callback_data не распознан, показываем меню
+            await show_deposit_menu(update, context)
             
     except ValueError as e:
         logger.error(f"Error parsing amount from callback data: {callback_data}, error: {e}")
@@ -570,12 +577,15 @@ async def handle_deposit_callback(update: Update, context: CallbackContext) -> N
         logger.error(traceback.format_exc())
         await query.edit_message_text(
             "❌ Произошла непредвиденная ошибка. Попробуйте еще раз или обратитесь в поддержку."
-        )
+        )        
+
 
 async def handle_successful_payment(update: Update, context: CallbackContext) -> None:
     """Обработка успешного платежа"""
     # Здесь будет обработка успешных платежей
     pass
+       
+
 
 def main() -> None:
     """Запуск бота"""
@@ -593,6 +603,8 @@ def main() -> None:
     application.add_handler(CommandHandler("toggle_mode", admin_toggle_mode))
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
     application.add_handler(CallbackQueryHandler(handle_deposit_callback, pattern="^(demo_)?deposit_"))
+    application.add_handler(CallbackQueryHandler(show_deposit_menu, pattern="^deposit_menu$"))
+    
     
     # Добавляем планировщик для проверки платежей (только в реальном режиме)
     if not DEMO_MODE:
