@@ -606,7 +606,13 @@
     </div>
 
     <script>
-    // Translations
+    // В начале скрипта добавьте:
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+    const demoMode = urlParams.get('demo_mode') === 'True';
+    
+    
+        // Translations
     const translations = {
         en: {
             welcomeTitle: "GeoHunter",
@@ -846,10 +852,20 @@
         // Initialize game
         initGame();
     }
-
+    
+    // Добавьте функцию для запроса баланса
+    async function fetchBalance() {
+        // В реальном приложении здесь должен быть API-запрос к боту
+        // Для демо-режима используем начальный баланс из параметров
+        return demoMode ? 100 : 0; // Заглушка
+    }
+    
     // Initialize game
-    function initGame() {
+    async function initGame() {
         // Show loading message
+        // Запрашиваем баланс у бота
+        gameState.balance = await fetchBalance();
+        updateBalance();
         showToast(translations[currentLanguage].loadingLocation);
         
         // Get user location
@@ -1179,13 +1195,16 @@
     
     // Функция для отправки данных боту
     function sendDataToBot(data) {
+        // Добавляем user_id в данные
+        data.user_id = userId;
+        data.demo_mode = demoMode;
+        
         if (window.Telegram && Telegram.WebApp) {
             Telegram.WebApp.sendData(JSON.stringify(data));
-            Telegram.WebApp.close();
         } else {
-            console.error('Telegram WebApp not available');
-            // Fallback для тестирования вне Telegram
-            alert('Data to be sent: ' + JSON.stringify(data));
+            console.log('Data to be sent to bot:', data);
+            // Для тестирования вне Telegram
+            alert('Данные для отправки: ' + JSON.stringify(data));
         }
     }
 

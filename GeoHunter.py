@@ -1,7 +1,7 @@
 # GeoHunter.py
 import requests
-import traceback
 import time
+import traceback
 from typing import Dict, Any
 import asyncio
 import sqlite3
@@ -34,8 +34,24 @@ CRYPTO_BOT_TOKEN = os.getenv('CRYPTO_BOT_TOKEN')
 CRYPTO_BOT_TESTNET = os.getenv('CRYPTO_BOT_TESTNET', 'True').lower() == 'true'
 CRYPTO_BOT_API_URL = "https://testnet-pay.crypt.bot/" if CRYPTO_BOT_TESTNET else "https://pay.crypt.bot/"
 
+# Режим работы (демо/реальный)
+DEMO_MODE = os.getenv('DEMO_MODE', 'True').lower() == 'true'
+
 def create_crypto_invoice(user_id: int, amount: float, asset: str = "USDT") -> Dict[str, Any]:
     """Создание инвойса в CryptoBot"""
+    if DEMO_MODE:
+        logger.info(f"Demo mode: Creating fake invoice for user {user_id}, amount {amount}")
+        return {
+            'invoice_id': f"demo_{user_id}_{int(time.time())}",
+            'pay_url': f"https://t.me/geohunter_bot?start=demo_payment_{user_id}_{amount}",
+            'status': 'active'
+        }
+    
+    # Проверяем наличие токена
+    if not CRYPTO_BOT_TOKEN or ":" not in CRYPTO_BOT_TOKEN:
+        logger.error("CryptoBot token is missing or invalid")
+        return {}
+    
     headers = {
         "Crypto-Pay-API-Token": CRYPTO_BOT_TOKEN,
         "Content-Type": "application/json"
@@ -54,8 +70,8 @@ def create_crypto_invoice(user_id: int, amount: float, asset: str = "USDT") -> D
     payload = {
         "asset": asset,
         "amount": str(amount),
-        "description": f"Пополнение счета GeoHunter для пользователя {user_id}",
-        "paid_btn_name": "open",
+        "description": f"GeoHunter deposit for user {user_id}",
+        "paid_btn_name": "viewItem",  # Изменено с "open" на "viewItem"
         "paid_btn_url": f"https://t.me/geohunter_bot?start=payment_{user_id}_{amount}",
         "payload": payload_str,
         "allow_comments": False,
@@ -63,25 +79,55 @@ def create_crypto_invoice(user_id: int, amount: float, asset: str = "USDT") -> D
     }
     
     try:
+        logger.info(f"Sending request to CryptoBot API: {CRYPTO_BOT_API_URL}api/createInvoice")
+        
         response = requests.post(
-            f"{CRYPTO_BOT_API_URL}api/invoice",
+            f"{CRYPTO_BOT_API_URL}api/createInvoice",
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=30
         )
+        
+        logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response text: {response.text}")
+        
+        # Проверяем статус ответа
+        if response.status_code == 401:
+            logger.error("CryptoBot API returned 401 Unauthorized. Please check your token.")
+            return {"error": "Invalid API token"}
+        elif response.status_code == 400:
+            logger.error("CryptoBot API returned 400 Bad Request. Please check your parameters.")
+            return {"error": "Bad request parameters"}
+        
         response.raise_for_status()
-        result = response.json().get("result", {})
+        result = response.json()
         
-        # Логируем результат для отладки
-        logger.info(f"CryptoBot invoice created: {result}")
-        
-        return result
+        # Проверяем структуру ответа
+        if result.get('ok'):
+            return result.get('result', {})
+        else:
+            error = result.get('error', {})
+            logger.error(f"CryptoBot API error: {error.get('name', 'Unknown')} - {error.get('code', 'No code')}")
+            return {"error": error.get('name', 'Unknown error')}
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Network error creating CryptoBot invoice: {e}")
+        return {"error": "Network error"}
     except Exception as e:
-        logger.error(f"Error creating CryptoBot invoice: {e}")
-        return {}
+        logger.error(f"Unexpected error creating CryptoBot invoice: {e}")
+        logger.error(traceback.format_exc())
+        return {"error": "Unexpected error"}
+        
         
         
 def check_crypto_invoice(invoice_id: int) -> Dict[str, Any]:
     """Проверка статуса инвойса в CryptoBot"""
+    if DEMO_MODE:
+        # В демо-режиме имитируем проверку инвойса
+        if invoice_id.startswith("demo_"):
+            return {'status': 'paid'}
+        return {'status': 'active'}
+    
     headers = {
         "Crypto-Pay-API-Token": CRYPTO_BOT_TOKEN
     }
@@ -89,7 +135,8 @@ def check_crypto_invoice(invoice_id: int) -> Dict[str, Any]:
     try:
         response = requests.get(
             f"{CRYPTO_BOT_API_URL}api/invoice?invoice_ids={invoice_id}",
-            headers=headers
+            headers=headers,
+            timeout=30
         )
         response.raise_for_status()
         result = response.json().get("result", {}).get("items", [])
@@ -98,12 +145,35 @@ def check_crypto_invoice(invoice_id: int) -> Dict[str, Any]:
         logger.error(f"Error checking CryptoBot invoice: {e}")
         return {}
 
-# Замените функцию process_crypto_payment в GeoHunter.py
+def check_cryptobot_connection():
+    """Проверка подключения к CryptoBot API"""
+    if DEMO_MODE:
+        logger.info("Demo mode: Skipping CryptoBot connection check")
+        return True
+    
+    headers = {
+        "Crypto-Pay-API-Token": CRYPTO_BOT_TOKEN
+    }
+    
+    try:
+        response = requests.get(
+            f"{CRYPTO_BOT_API_URL}api/getMe",
+            headers=headers,
+            timeout=30
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        if result.get('ok') and 'result' in result:
+            logger.info(f"CryptoBot API connection successful: {result['result']}")
+            return True
+        else:
+            logger.error(f"CryptoBot API connection failed: {result}")
+            return False
+    except Exception as e:
+        logger.error(f"CryptoBot API connection error: {e}")
+        return False
 
-# В начале файла добавьте
-import traceback
-
-# В функции process_crypto_payment добавьте подробное логирование
 async def process_crypto_payment(context: CallbackContext) -> None:
     """Асинхронная обработка платежей через CryptoBot"""
     try:
@@ -146,9 +216,7 @@ async def process_crypto_payment(context: CallbackContext) -> None:
                     logger.error(f"Error sending payment confirmation: {e}")
     except Exception as e:
         logger.error(f"Error in process_crypto_payment: {e}")
-        logger.error(traceback.format_exc()) 
-        
-                                      
+        logger.error(traceback.format_exc())
 
 async def start(update: Update, context: CallbackContext) -> None:
     """Обработчик команды /start"""
@@ -158,39 +226,72 @@ async def start(update: Update, context: CallbackContext) -> None:
     db.create_user(user)
     
     # Обработка платежных callback
-    if context.args and context.args[0].startswith('payment_'):
-        try:
-            parts = context.args[0].split('_')
-            if len(parts) >= 3:
-                target_user_id = int(parts[1])
-                amount = float(parts[2])
-                
-                # Проверяем, что это тот же пользователь
-                if user.id == target_user_id:
-                    # Показываем сообщение о ожидании платежа
-                    await update.message.reply_text(
-                        f"✅ Ваш платеж на ${amount} обрабатывается. "
-                        f"Баланс будет зачислен в течение нескольких минут после подтверждения платежа."
-                    )
-        except ValueError:
-            logger.error("Invalid payment callback format")
+    if context.args:
+        if context.args[0].startswith('payment_'):
+            try:
+                parts = context.args[0].split('_')
+                if len(parts) >= 3:
+                    target_user_id = int(parts[1])
+                    amount = float(parts[2])
+                    
+                    # Проверяем, что это тот же пользователь
+                    if user.id == target_user_id:
+                        # Показываем сообщение о ожидании платежа
+                        await update.message.reply_text(
+                            f"✅ Ваш платеж на ${amount} обрабатывается. "
+                            f"Баланс будет зачислен в течение нескольких минут после подтверждения платежа."
+                        )
+            except ValueError:
+                logger.error("Invalid payment callback format")
+        
+        elif context.args[0].startswith('demo_payment_'):
+            try:
+                parts = context.args[0].split('_')
+                if len(parts) >= 4:
+                    target_user_id = int(parts[2])
+                    amount = float(parts[3])
+                    
+                    # Проверяем, что это тот же пользователь
+                    if user.id == target_user_id:
+                        # В демо-режиме сразу зачисляем средства
+                        db.update_balance(user_id, amount)
+                        db.add_transaction(user_id, amount, "deposit", "completed", "demo", f"demo_{int(time.time())}")
+                        
+                        await update.message.reply_text(
+                            f"✅ Демо-платеж на ${amount} успешно обработан! "
+                            f"Текущий баланс: ${db.get_balance(user_id)}"
+                        )
+            except ValueError:
+                logger.error("Invalid demo payment callback format")
     
     welcome_text = (
         "🌟 Welcome to GeoHunter! 🌟\n\n"
         "I'll help you find hidden treasures around you!\n\n"
-        "Click the button below to launch the game interface:"
     )
     
+    if DEMO_MODE:
+        welcome_text += "🔶 ДЕМО-РЕЖИМ 🔶\n"
+        welcome_text += "Все платежи виртуальные, для тестирования.\n\n"
+    
+    welcome_text += "Click the button below to launch the game interface:"
+    
     # Добавляем initData для аутентификации в веб-приложении
-    web_app_url = f"{WEB_APP_URL}?user_id={user.id}"
+    #web_app_url = f"{WEB_APP_URL}?user_id={user.id}&demo_mode={DEMO_MODE}"
+    # Добавляем initData для аутентификации в веб-приложении
+    web_app_url = f"{WEB_APP_URL}?user_id={user.id}&demo_mode={DEMO_MODE}&balance={db.get_balance(user.id)}"
+    
     
     keyboard = [
         [InlineKeyboardButton("🎮 Launch GeoHunter", web_app=WebAppInfo(url=web_app_url))]
     ]
+    
+    # Добавляем кнопку для пополнения баланса
+    if not DEMO_MODE:
+        keyboard.append([InlineKeyboardButton("💳 Пополнить баланс", callback_data="deposit_menu")])
+    
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
-    
     
     
     
@@ -198,26 +299,31 @@ async def handle_web_app_data(update: Update, context: CallbackContext) -> None:
     """Обработка данных из веб-приложения"""
     try:
         data = json.loads(update.message.web_app_data.data)
-        user_id = update.effective_user.id
+        user_id = data.get('user_id', update.effective_user.id)
         
         logger.info(f"Received data from web app: {data}")
         
         # Обработка разных типов данных из веб-приложения
         if data.get('type') == 'game_result':
-            # Обработка результатов игры
-            game_id = db.create_game(user_id, data['mode'], data['entry_fee'])
+            # Получаем параметры игры
+            mode = data.get('mode', 'economy')
+            entry_fee = data.get('entry_fee', 0)
+            prize_won = data.get('prize_won', 0)
+            found_geospots = data.get('found_geospots', [])
+            
+            # Создаем запись об игре
+            game_id = db.create_game(user_id, mode, entry_fee)
             
             # Добавляем найденные геоточки
-            for geospot in data.get('found_geospots', []):
+            for geospot in found_geospots:
                 db.add_found_geospot(
                     game_id, 
                     user_id, 
-                    geospot['has_prize'], 
+                    geospot.get('has_prize', False), 
                     geospot.get('prize_amount', 0)
                 )
             
             # Обновляем баланс пользователя
-            prize_won = data.get('prize_won', 0)
             if prize_won > 0:
                 db.update_balance(user_id, prize_won)
                 db.update_game_result(game_id, prize_won)
@@ -246,7 +352,8 @@ async def handle_web_app_data(update: Update, context: CallbackContext) -> None:
         logger.error(f"Error processing web app data: {e}")
         await update.message.reply_text("Sorry, there was an error processing your request.")
         
-        
+                        
+
 async def admin_stats(update: Update, context: CallbackContext) -> None:
     """Показать статистику для администратора"""
     user_id = update.effective_user.id
@@ -284,7 +391,8 @@ async def admin_stats(update: Update, context: CallbackContext) -> None:
             f"🎮 Всего игр: {total_games}\n"
             f"🏆 Всего выигрышей: ${total_prizes}\n"
             f"💰 Всего пополнений: ${total_deposits}\n"
-            f"💵 Доход: ${total_deposits - total_prizes}"
+            f"💵 Доход: ${total_deposits - total_prizes}\n"
+            f"🔶 Режим: {'Демо' if DEMO_MODE else 'Реальный'}"
         )
         
         await update.message.reply_text(stats_message)
@@ -294,7 +402,7 @@ async def admin_stats(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("❌ Произошла ошибка при получении статистики.")
         
         
-        
+
 async def admin_broadcast(update: Update, context: CallbackContext) -> None:
     """Рассылка сообщения всем пользователям"""
     user_id = update.effective_user.id
@@ -336,6 +444,25 @@ async def admin_broadcast(update: Update, context: CallbackContext) -> None:
         f"❌ Не удалось: {fail}"
     )
 
+async def admin_toggle_mode(update: Update, context: CallbackContext) -> None:
+    """Переключение между демо и реальным режимом"""
+    user_id = update.effective_user.id
+    
+    # Проверяем, является ли пользователь администратором
+    if str(user_id) not in os.getenv('ADMIN_IDS', '').split(','):
+        await update.message.reply_text("❌ У вас нет прав для выполнения этой команды.")
+        return
+    
+    global DEMO_MODE
+    DEMO_MODE = not DEMO_MODE
+    
+    # Сохраняем настройку в переменные окружения
+    os.environ['DEMO_MODE'] = str(DEMO_MODE)
+    
+    await update.message.reply_text(
+        f"✅ Режим изменен на: {'Демо' if DEMO_MODE else 'Реальный'}"
+    )
+
 def generate_payment_url(user_id, amount):
     """Генерация URL для оплаты через CryptoBot"""
     invoice = create_crypto_invoice(user_id, amount)
@@ -344,88 +471,140 @@ def generate_payment_url(user_id, amount):
         # Сохраняем информацию о транзакции в базу данных
         db.add_transaction(user_id, amount, "deposit", "pending", "cryptobot", invoice.get('invoice_id'))
         return invoice['pay_url']
-    
-    logger.error(f"Failed to create invoice for user {user_id}, amount {amount}")
-    return "Ошибка при создании платежа. Попробуйте позже."
-    
-    
+    elif invoice and 'error' in invoice:
+        logger.error(f"CryptoBot error: {invoice['error']}")
+        return f"Ошибка CryptoBot: {invoice['error']}"
+    else:
+        logger.error(f"Failed to create invoice for user {user_id}, amount {amount}. Invoice response: {invoice}")
+        return "Ошибка при создании платежа. Попробуйте позже."
+        
+        
 
-async def handle_successful_payment(update: Update, context: CallbackContext) -> None:
-    """Обработка успешного платежа"""
-    # Здесь будет обработка успешных платежей
-    # Пока заглушка
-    pass
-    
-    
 async def deposit_command(update: Update, context: CallbackContext) -> None:
     """Команда для пополнения баланса"""
     user_id = update.effective_user.id
     
-    # Создаем клавиатуру с вариантами сумм
-    keyboard = [
-        [InlineKeyboardButton("5$", callback_data="deposit_5")],
-        [InlineKeyboardButton("10$", callback_data="deposit_10")],
-        [InlineKeyboardButton("20$", callback_data="deposit_20")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(
-        "Выберите сумму для пополнения:",
-        reply_markup=reply_markup
-    )
-    
-    
+    if DEMO_MODE:
+        # В демо-режиме предлагаем виртуальное пополнение
+        keyboard = [
+            [InlineKeyboardButton("➕ 10$ (Демо)", callback_data="demo_deposit_10")],
+            [InlineKeyboardButton("➕ 50$ (Демо)", callback_data="demo_deposit_50")],
+            [InlineKeyboardButton("➕ 100$ (Демо)", callback_data="demo_deposit_100")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            "🔶 ДЕМО-РЕЖИМ 🔶\nВыберите сумму для виртуального пополнения:",
+            reply_markup=reply_markup
+        )
+    else:
+        # В реальном режиме предлагаем реальное пополнение
+        keyboard = [
+            [InlineKeyboardButton("5$", callback_data="deposit_5")],
+            [InlineKeyboardButton("10$", callback_data="deposit_10")],
+            [InlineKeyboardButton("20$", callback_data="deposit_20")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            "Выберите сумму для пополнения:",
+            reply_markup=reply_markup
+        )
+        
+        
 
 async def handle_deposit_callback(update: Update, context: CallbackContext) -> None:
+    """Обработка callback-запросов для пополнения баланса"""
     query = update.callback_query
     await query.answer()
     
     user_id = query.from_user.id
-    amount = float(query.data.split('_')[1])
+    callback_data = query.data
     
-    # Генерируем ссылку для оплаты
-    payment_url = generate_payment_url(user_id, amount)
-    
-    # Проверяем, что ссылка сгенерирована успешно
-    if payment_url.startswith("http"):
-        await query.edit_message_text(
-            f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
-            "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
-        )
-    else:
-        await query.edit_message_text(
-            f"❌ {payment_url}\n\n"
-            "Попробуйте еще раз или обратитесь в поддержку."
-        )
+    try:
+        # Обработка демо-пополнения
+        if callback_data.startswith('demo_deposit_'):
+            amount_str = callback_data.replace('demo_deposit_', '')
+            amount = float(amount_str)
+            
+            # В демо-режиме сразу зачисляем средства
+            db.update_balance(user_id, amount)
+            db.add_transaction(user_id, amount, "deposit", "completed", "demo", f"demo_{int(time.time())}")
+            
+            await query.edit_message_text(
+                f"✅ Виртуальное пополнение на ${amount} успешно выполнено!\n"
+                f"Текущий баланс: ${db.get_balance(user_id)}"
+            )
         
-        
+        # Обработка реального пополнения
+        elif callback_data.startswith('deposit_'):
+            amount_str = callback_data.replace('deposit_', '')
+            amount = float(amount_str)
+            
+            # Генерируем ссылку для оплаты
+            payment_url = generate_payment_url(user_id, amount)
+            
+            # Проверяем, что ссылка сгенерирована успешно
+            if payment_url.startswith("http"):
+                await query.edit_message_text(
+                    f"Для пополнения баланса на ${amount} перейдите по ссылке:\n\n{payment_url}\n\n"
+                    "После оплаты баланс будет зачислен автоматически в течение нескольких минут."
+                )
+            else:
+                await query.edit_message_text(
+                    f"❌ {payment_url}\n\n"
+                    "Попробуйте еще раз или обратитесь в поддержку."
+                )
+        else:
+            await query.edit_message_text(
+                "❌ Неизвестный тип запроса. Попробуйте еще раз."
+            )
+            
+    except ValueError as e:
+        logger.error(f"Error parsing amount from callback data: {callback_data}, error: {e}")
+        await query.edit_message_text(
+            "❌ Ошибка обработки запроса. Попробуйте еще раз или обратитесь в поддержку."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in handle_deposit_callback: {e}")
+        logger.error(traceback.format_exc())
+        await query.edit_message_text(
+            "❌ Произошла непредвиденная ошибка. Попробуйте еще раз или обратитесь в поддержку."
+        )
 
-# В функции main() после создания application
+async def handle_successful_payment(update: Update, context: CallbackContext) -> None:
+    """Обработка успешного платежа"""
+    # Здесь будет обработка успешных платежей
+    pass
+
 def main() -> None:
     """Запуск бота"""
+    # Проверяем подключение к CryptoBot API (только в реальном режиме)
+    if not DEMO_MODE and not check_cryptobot_connection():
+        logger.error("Failed to connect to CryptoBot API. Please check your configuration.")
+    
     application = Application.builder().token(TOKEN).build()
     
     # Добавляем обработчики
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
-    
-    # Добавляем обработчики команд администратора
+    application.add_handler(CommandHandler("deposit", deposit_command))
     application.add_handler(CommandHandler("stats", admin_stats))
     application.add_handler(CommandHandler("broadcast", admin_broadcast))
+    application.add_handler(CommandHandler("toggle_mode", admin_toggle_mode))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
+    application.add_handler(CallbackQueryHandler(handle_deposit_callback, pattern="^(demo_)?deposit_"))
     
-    application.add_handler(CommandHandler("deposit", deposit_command))
-    application.add_handler(CallbackQueryHandler(handle_deposit_callback, pattern="^deposit_"))
+    # Добавляем планировщик для проверки платежей (только в реальном режиме)
+    if not DEMO_MODE:
+        job_queue = application.job_queue
+        if job_queue:
+            job_queue.run_repeating(
+                lambda context: asyncio.create_task(process_crypto_payment(context)),
+                interval=300,
+                first=10
+            )
     
-    # Добавляем планировщик для проверки платежей каждые 5 минут
-    job_queue = application.job_queue
-    if job_queue:
-        job_queue.run_repeating(
-            lambda context: asyncio.create_task(process_crypto_payment(context)),
-            interval=300,
-            first=10
-        )
-    
-    logger.info("Bot started with database and web app support")
+    logger.info(f"Bot started in {'DEMO' if DEMO_MODE else 'REAL'} mode")
     application.run_polling()
 
 if __name__ == '__main__':
